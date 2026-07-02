@@ -1,0 +1,4 @@
+project_id      = "energy-genai-assistant"
+region          = "europe-west1"
+bigquery_dataset = "rte_energy"
+container_image = "europe-west1-docker.pkg.dev/energy-genai-assistant/energy-genai/api:latest"

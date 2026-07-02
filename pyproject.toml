@@ -1,0 +1,20 @@
+[project]
+name = "energy-genai-assistant"
+version = "0.1.0"
+description = "Agentic GenAI assistant over RTE electricity data: RAG + text-to-SQL on BigQuery, served on Cloud Run."
+requires-python = ">=3.11"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "N", "SIM"]
+ignore = [
+    "E501",   # line too long
+    "B008",   # Depends() in default args is the canonical FastAPI pattern
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --tb=short"
