@@ -16,6 +16,10 @@ langgraph==0.1.5
 google-cloud-bigquery==3.25.0
 db-dtypes==1.2.0
 
+# ── Source Postgres (rte-pipeline marts export) ───────────────────────────────
+SQLAlchemy==2.0.51
+psycopg2-binary==2.9.9
+
 # ── Observability ─────────────────────────────────────────────────────────────
 langsmith==0.1.83
 

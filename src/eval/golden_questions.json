@@ -1,0 +1,86 @@
+[
+  {
+    "id": "conso_total_jour",
+    "question": "Quelle a été la consommation totale (en MWh) le 15 janvier 2025 ?",
+    "table": "consommation_journaliere",
+    "sql": "SELECT total_mwh FROM consommation_journaliere WHERE date = '2025-01-15'",
+    "note": "lookup simple par date"
+  },
+  {
+    "id": "conso_pic_max",
+    "question": "Quel est le pic de consommation (en MW) le plus élevé enregistré ?",
+    "table": "consommation_journaliere",
+    "sql": "SELECT MAX(pic_mw) AS pic_max_mw FROM consommation_journaliere",
+    "note": "agrégat MAX sur une colonne"
+  },
+  {
+    "id": "conso_jour_max",
+    "question": "Quel jour la consommation totale a-t-elle été la plus forte ?",
+    "table": "consommation_journaliere",
+    "sql": "SELECT date, total_mwh FROM consommation_journaliere ORDER BY total_mwh DESC LIMIT 1",
+    "note": "argmax via ORDER BY ... LIMIT"
+  },
+  {
+    "id": "conso_moyenne_periode",
+    "question": "Quelle est la consommation moyenne journalière (en MWh) sur toute la période ?",
+    "table": "consommation_journaliere",
+    "sql": "SELECT AVG(total_mwh) AS conso_moyenne_mwh FROM consommation_journaliere",
+    "note": "agrégat AVG global"
+  },
+  {
+    "id": "conso_janvier_total",
+    "question": "Quelle a été la consommation cumulée sur janvier 2025 (en MWh) ?",
+    "table": "consommation_journaliere",
+    "sql": "SELECT SUM(total_mwh) AS total_janvier_mwh FROM consommation_journaliere WHERE date BETWEEN '2025-01-01' AND '2025-01-31'",
+    "note": "somme sur une plage de dates"
+  },
+  {
+    "id": "mix_top_filiere_semaine",
+    "question": "Quelle filière a le plus produit lors de la semaine du 6 janvier 2025 ?",
+    "table": "mix_energetique_hebdomadaire",
+    "sql": "SELECT filiere, production_mwh FROM mix_energetique_hebdomadaire WHERE semaine = '2025-01-06' ORDER BY production_mwh DESC LIMIT 1",
+    "note": "filtre + tri sur une semaine"
+  },
+  {
+    "id": "mix_part_nucleaire",
+    "question": "Quelle est la part moyenne (en %) du nucléaire dans le mix hebdomadaire ?",
+    "table": "mix_energetique_hebdomadaire",
+    "sql": "SELECT AVG(part_pct) AS part_nucleaire_pct FROM mix_energetique_hebdomadaire WHERE filiere = 'NUCLEAR'",
+    "note": "filtre sur une valeur catégorielle + moyenne"
+  },
+  {
+    "id": "mix_top3_filieres",
+    "question": "Quelles sont les 3 filières les plus productrices au total ?",
+    "table": "mix_energetique_hebdomadaire",
+    "sql": "SELECT filiere, SUM(production_mwh) AS production_totale_mwh FROM mix_energetique_hebdomadaire GROUP BY filiere ORDER BY production_totale_mwh DESC LIMIT 3",
+    "note": "GROUP BY + tri + LIMIT"
+  },
+  {
+    "id": "mix_solaire_max_semaine",
+    "question": "Quelle semaine la production solaire a-t-elle été la plus élevée ?",
+    "table": "mix_energetique_hebdomadaire",
+    "sql": "SELECT semaine, production_mwh FROM mix_energetique_hebdomadaire WHERE filiere = 'SOLAR' ORDER BY production_mwh DESC LIMIT 1",
+    "note": "filtre catégoriel + argmax"
+  },
+  {
+    "id": "echanges_solde_total",
+    "question": "Quel est le solde net d'électricité (export - import) sur toute la période, en MWh ?",
+    "table": "solde_echanges_journalier",
+    "sql": "SELECT SUM(solde_mwh) AS solde_net_mwh FROM solde_echanges_journalier",
+    "note": "somme globale d'une colonne signée"
+  },
+  {
+    "id": "echanges_jours_importateur",
+    "question": "Combien de jours la France a-t-elle été importatrice nette ?",
+    "table": "solde_echanges_journalier",
+    "sql": "SELECT COUNT(*) AS nb_jours_import FROM solde_echanges_journalier WHERE solde_mwh < 0",
+    "note": "COUNT avec condition"
+  },
+  {
+    "id": "echanges_export_max",
+    "question": "Quel jour la France a-t-elle le plus exporté (en MWh) ?",
+    "table": "solde_echanges_journalier",
+    "sql": "SELECT date, export_mwh FROM solde_echanges_journalier ORDER BY export_mwh DESC LIMIT 1",
+    "note": "argmax sur les exports"
+  }
+]
