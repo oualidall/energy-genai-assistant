@@ -21,8 +21,8 @@ gcp-credentials*.json
 !*.tfvars.example
 .terraform.lock.hcl
 
-# Data
-data/
+# Data (root-level exports only — src/data/ is source code)
+/data/
 *.parquet
 *.csv
 
