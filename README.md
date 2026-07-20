@@ -66,9 +66,9 @@ uvicorn src.api.main:app --reload
 ## Roadmap
 
 - [x] **Phase 0** — Repo skeleton, FastAPI contract (`/healthz`, `/ask`), CI, Dockerfile, Terraform scaffold
-- [ ] **Phase 1** — Load RTE data into BigQuery + a "golden questions" eval set
-- [ ] **Phase 2** — RAG (schema/doc indexing) + text-to-SQL chain with Gemini
-- [ ] **Phase 3** — LangGraph agent (route RAG vs SQL vs direct) + SQL guardrails
+- [x] **Phase 1** — RTE data loaded into BigQuery + a 12-question golden eval set
+- [x] **Phase 2** — RAG retriever + text-to-SQL chain with Gemini (SELECT-only guardrail)
+- [x] **Phase 3** — LangGraph agent (routes RAG vs SQL vs direct) + French answer synthesis, wired into `/ask`
 - [ ] **Phase 4** — Deploy to Cloud Run via Terraform + GitHub Actions CD
 - [ ] **Phase 5** — LLMOps: LangSmith tracing, LLM-as-judge eval, prompt versioning
 
