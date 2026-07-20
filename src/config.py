@@ -20,7 +20,7 @@ class Settings(BaseSettings):
 
     # Gemini (Google AI Studio)
     google_api_key: str = ""
-    gemini_model: str = "gemini-1.5-flash"
+    gemini_model: str = "gemini-flash-latest"
 
     # Google Cloud / BigQuery
     gcp_project_id: str = "energy-genai-assistant"
