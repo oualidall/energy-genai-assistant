@@ -11,10 +11,12 @@ stable from the start lets CI and the deployment pipeline be built first.
 
 from __future__ import annotations
 
+import functools
 import logging
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 
+from src.agent.graph import EnergyAgent
 from src.api.schemas import AskRequest, AskResponse, HealthResponse
 from src.config import settings
 
@@ -34,6 +36,16 @@ app = FastAPI(
 )
 
 
+@functools.lru_cache(maxsize=1)
+def get_agent() -> EnergyAgent:
+    """Build the LangGraph agent once and reuse it (FastAPI dependency).
+
+    Cached so the model/graph are constructed a single time; overridable in
+    tests via ``app.dependency_overrides``.
+    """
+    return EnergyAgent()
+
+
 @app.get("/healthz", response_model=HealthResponse, tags=["ops"])
 async def healthz() -> HealthResponse:
     """Return 200 as soon as the process is up.
@@ -45,18 +57,12 @@ async def healthz() -> HealthResponse:
 
 
 @app.post("/ask", response_model=AskResponse, tags=["inference"])
-async def ask(request: AskRequest) -> AskResponse:
-    """Answer a question about the energy data.
+async def ask(request: AskRequest, agent: EnergyAgent = Depends(get_agent)) -> AskResponse:
+    """Answer a natural-language question via the LangGraph agent.
 
-    Stubbed in Phase 0: echoes the question and reports the ``direct`` route.
-    Phases 2-3 replace the body with the LangGraph agent.
+    The agent routes between RAG (definitions), text-to-SQL (figures) and a
+    direct answer, then returns a synthesised French answer.
     """
     logger.info("received question: %s", request.question)
-    return AskResponse(
-        answer=(
-            "L'agent n'est pas encore branché (Phase 0). "
-            f"Question reçue : « {request.question} »"
-        ),
-        route="direct",
-        sql=None,
-    )
+    result = agent.answer(request.question)
+    return AskResponse(answer=result["answer"], route=result["route"], sql=result["sql"])

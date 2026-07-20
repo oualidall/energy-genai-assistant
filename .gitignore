@@ -30,3 +30,7 @@ gcp-credentials*.json
 .DS_Store
 .idea/
 .vscode/
+
+# Local dev helpers (machine-specific)
+ask.ps1
+.ask_question.txt

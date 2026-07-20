@@ -97,10 +97,19 @@ def generate_sql(question: str, llm=None) -> str:
 
 if __name__ == "__main__":
     import sys
+    from pathlib import Path
 
     from src.sql.executor import run_query
 
-    question = " ".join(sys.argv[1:]) or "Quel jour la France a-t-elle le plus exporté ?"
+    args = sys.argv[1:]
+    if len(args) >= 2 and args[0] == "--qfile":
+        # question read from a UTF-8 file (robust across the Windows/WSL boundary)
+        question = Path(args[1]).read_text(encoding="utf-8").strip()
+    else:
+        question = " ".join(args)
+    if not question:
+        question = "Quel jour la France a-t-elle le plus exporté ?"
+
     sql = generate_sql(question)
     print("Question:", question)
     print("SQL     :", sql)
