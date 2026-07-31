@@ -70,7 +70,25 @@ uvicorn src.api.main:app --reload
 - [x] **Phase 2** — RAG retriever + text-to-SQL chain with Gemini (SELECT-only guardrail)
 - [x] **Phase 3** — LangGraph agent (routes RAG vs SQL vs direct) + French answer synthesis, wired into `/ask`
 - [ ] **Phase 4** — Deploy to Cloud Run via Terraform + GitHub Actions CD
-- [ ] **Phase 5** — LLMOps: LangSmith tracing, LLM-as-judge eval, prompt versioning
+- [~] **Phase 5** — LLMOps: eval harness done (below); LangSmith tracing + prompt versioning next
+
+## Evaluation
+
+The agent is scored against a 12-question golden set (`src/eval/golden_questions.json`)
+covering every mart and every SQL pattern (lookup, aggregate, argmax, group-by, filter).
+
+- **Execution match** — the agent's generated SQL and the reference SQL are both run on
+  BigQuery and their result sets compared (order- and alias-insensitive). Objective, with
+  no reliance on hard-coded expected values.
+- **LLM-as-judge** — Gemini checks that a natural-language answer is consistent with the
+  reference result (for RAG/direct answers that have no SQL to compare).
+
+```bash
+python -m src.eval.runner   # prints pass@12 and a per-question breakdown
+```
+
+Set `LANGCHAIN_TRACING_V2=true` and `LANGCHAIN_API_KEY` in `.env` to trace every agent run
+in LangSmith.
 
 ## Cost
 

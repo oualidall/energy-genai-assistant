@@ -1,9 +1,9 @@
 [
   {
     "id": "conso_total_jour",
-    "question": "Quelle a été la consommation totale (en MWh) le 15 janvier 2025 ?",
+    "question": "Quelle a été la consommation totale (en MWh) le 15 juillet 2026 ?",
     "table": "consommation_journaliere",
-    "sql": "SELECT total_mwh FROM consommation_journaliere WHERE date = '2025-01-15'",
+    "sql": "SELECT total_mwh FROM consommation_journaliere WHERE date = '2026-07-15'",
     "note": "lookup simple par date"
   },
   {
@@ -28,17 +28,17 @@
     "note": "agrégat AVG global"
   },
   {
-    "id": "conso_janvier_total",
-    "question": "Quelle a été la consommation cumulée sur janvier 2025 (en MWh) ?",
+    "id": "conso_juillet_total",
+    "question": "Quelle a été la consommation cumulée sur juillet 2026 (en MWh) ?",
     "table": "consommation_journaliere",
-    "sql": "SELECT SUM(total_mwh) AS total_janvier_mwh FROM consommation_journaliere WHERE date BETWEEN '2025-01-01' AND '2025-01-31'",
+    "sql": "SELECT SUM(total_mwh) AS total_juillet_mwh FROM consommation_journaliere WHERE date BETWEEN '2026-07-01' AND '2026-07-31'",
     "note": "somme sur une plage de dates"
   },
   {
     "id": "mix_top_filiere_semaine",
-    "question": "Quelle filière a le plus produit lors de la semaine du 6 janvier 2025 ?",
+    "question": "Quelle filière a le plus produit lors de la semaine du 6 juillet 2026 ?",
     "table": "mix_energetique_hebdomadaire",
-    "sql": "SELECT filiere, production_mwh FROM mix_energetique_hebdomadaire WHERE semaine = '2025-01-06' ORDER BY production_mwh DESC LIMIT 1",
+    "sql": "SELECT filiere, production_mwh FROM mix_energetique_hebdomadaire WHERE semaine = '2026-07-06' ORDER BY production_mwh DESC LIMIT 1",
     "note": "filtre + tri sur une semaine"
   },
   {
