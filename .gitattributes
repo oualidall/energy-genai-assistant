@@ -1,0 +1,4 @@
+evals/*.json text eol=lf
+evals/fixtures/*.json text eol=lf
+src/rag/knowledge.py text eol=lf
+docs/v2/refusal-and-review-rules.md text eol=lf
