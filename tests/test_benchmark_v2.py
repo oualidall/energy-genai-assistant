@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import csv
 import json
+import sqlite3
 from collections import Counter
 from pathlib import Path
 from types import SimpleNamespace
@@ -49,7 +50,7 @@ def test_freeze_rejects_modified_bytes(tmp_path):
 def test_fixture_rejects_writes_multiple_statements_and_unauthorized_access(sql):
     db = FixtureDatabase.load()
     try:
-        with pytest.raises(Exception):
+        with pytest.raises((ValueError, sqlite3.DatabaseError)):
             db.query(sql)
         assert len(db.execute("SELECT * FROM consommation_journaliere")) == 62
         assert db.calls[-1]["error"] is not None
