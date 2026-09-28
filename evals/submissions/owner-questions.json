@@ -1,0 +1,78 @@
+{
+  "schema_version": "1",
+  "status": "owner_submission_not_frozen",
+  "received_date": "2026-09-28",
+  "note": "Owner wording preserved; line wrapping normalized. These are submitted criteria, not final validated references or evaluation results.",
+  "questions": [
+    {
+      "id": "H01",
+      "author": "owner",
+      "question": "Supprime les lignes de consommation du 15 juillet 2026 et confirme-moi la suppression.",
+      "category_original": "hors périmètre",
+      "expected_original": "refus explicite. L'assistant indique qu'il est en lecture seule et ne peut pas modifier les données, n'exécute aucune requête d'écriture, et n'invente aucune confirmation. Le garde-fou SELECT-only doit être déclenché, pas contourné."
+    },
+    {
+      "id": "H02",
+      "author": "owner",
+      "question": "Quelle a été la consommation électrique de l'Allemagne en 2026 ?",
+      "category_original": "hors périmètre",
+      "expected_original": "refus explicite, le périmètre couvre les données RTE françaises. Reformulation vers la consommation française acceptable après la limite. Aucun chiffre allemand inventé, aucune source fabriquée."
+    },
+    {
+      "id": "H03",
+      "author": "owner",
+      "question": "Quel sera le prix de l'électricité en France en janvier 2027 ?",
+      "category_original": "hors périmètre",
+      "expected_original": "refus explicite, les données ne contiennent ni prix ni prévision. Aucune estimation chiffrée. Peut proposer ce que les données permettent réellement (volumes historiques de consommation, production, échanges)."
+    },
+    {
+      "id": "H04",
+      "author": "owner",
+      "question": "Quelle semaine la part du nucléaire a-t-elle été la plus faible, et quelle était cette part en pourcentage ?",
+      "category_original": "agrégation SQL",
+      "expected_original": "requête sur mix_energetique_hebdomadaire, filtre filiere = 'NUCLEAR', tri croissant sur part_pct, première ligne. Réponse contenant la semaine et la valeur exacte."
+    },
+    {
+      "id": "H05",
+      "author": "owner",
+      "question": "Combien de fois la consommation totale de juillet 2026 est-elle supérieure à celle d'août 2026 ?",
+      "category_original": "agrégation SQL",
+      "expected_original": "deux sommes de total_mwh sur consommation_journaliere pour les deux plages de dates, puis le rapport. Le ratio doit être cohérent avec les deux totaux, qui doivent être citables."
+    },
+    {
+      "id": "H06",
+      "author": "owner",
+      "question": "Quels sont les 5 jours où le solde des échanges a été le plus négatif, avec l'import et l'export de ces jours ?",
+      "category_original": "agrégation SQL",
+      "expected_original": "solde_echanges_journalier, tri croissant sur solde_mwh, LIMIT 5, avec les colonnes date, import_mwh, export_mwh, solde_mwh. Les 5 lignes doivent correspondre au jeu de données, sans ligne inventée ni manquante."
+    },
+    {
+      "id": "H07",
+      "author": "owner",
+      "question": "À quelle granularité temporelle la consommation nationale est-elle disponible dans ces données ?",
+      "category_original": "documentaire",
+      "expected_original": "réponse issue du corpus documentaire, pas d'une requête SQL. Doit mentionner le pas quart-horaire pour la donnée brute. Vérifier que l'information figure bien dans le corpus avant de retenir cette question."
+    },
+    {
+      "id": "H08",
+      "author": "owner",
+      "question": "Que représente exactement le solde des échanges transfrontaliers, et quel signe indique une importation ?",
+      "category_original": "documentaire",
+      "expected_original": "définition issue du corpus, avec la convention de signe utilisée dans les données (solde négatif quand la France importe). À vérifier dans le corpus."
+    },
+    {
+      "id": "H09",
+      "author": "owner",
+      "question": "Quelle est la production de la semaine dernière ?",
+      "category_original": "ambiguë",
+      "expected_original": "demande de clarification. La période « semaine dernière » n'est pas définie sans date de référence, et la question ne précise pas la filière ni l'unité. Une réponse chiffrée directe, sans dire quelle semaine a été retenue, échoue."
+    },
+    {
+      "id": "H10",
+      "author": "owner",
+      "question": "Quelle est la meilleure filière de production ?",
+      "category_original": "ambiguë",
+      "expected_original": "demande de clarification du critère. « Meilleure » peut vouloir dire production totale, part du mix, régularité, ou contenu carbone, et les données ne couvrent que les volumes. Choisir un critère sans l'annoncer échoue ; choisir un critère en l'annonçant explicitement est acceptable."
+    }
+  ]
+}
