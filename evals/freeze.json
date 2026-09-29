@@ -1,0 +1,14 @@
+{
+  "schema_version": "1",
+  "frozen_date": "2026-09-28",
+  "content_commit": "81295357edb79354d525824cf1737e164504570e",
+  "hash_algorithm": "sha256",
+  "serialization": "Exact committed UTF-8 bytes, LF line endings. JSON uses two-space indentation and a final newline.",
+  "files": {
+    "evals/bank.json": "f67ace63230678169d583243ebe7aa040fea19ee9b1692dda91e94cc3dfb5d76",
+    "evals/fixtures/snapshot.json": "b19cc7eed7fbf39fb6e7c46bbb6d78c40ca0076aaa41aa953e2080046a379d10",
+    "src/rag/knowledge.py": "d7a12db4ab883ed5d7906a139dfe58892c41ae16f591fc6867a9c026ea4a7246",
+    "docs/v2/refusal-and-review-rules.md": "a7636906a496980b78728728a03ceee0eec674a403600887a1a7f4dec2678272"
+  },
+  "policy": "Immutable campaign inputs. Any correction requires a new separately named campaign; preserve this lock and all original results."
+}

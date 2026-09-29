@@ -22,3 +22,10 @@ jobs:
           GCP_PROJECT_ID: "energy-genai-assistant"
           BIGQUERY_DATASET: "rte_energy"
           LOG_LEVEL: "INFO"
+      - name: Offline stratified benchmark
+        run: python -m src.eval.compare --limit 8 --repetitions 1 --output work/ci-eval
+      - name: Preserve smoke records
+        uses: actions/upload-artifact@v4
+        with:
+          name: mock-v1-smoke
+          path: work/ci-eval/

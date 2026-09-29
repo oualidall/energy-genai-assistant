@@ -1,0 +1,10 @@
+{
+  "schema_version": "1",
+  "path": "evals/bank.json",
+  "algorithm": "sha256",
+  "sha256": "f67ace63230678169d583243ebe7aa040fea19ee9b1692dda91e94cc3dfb5d76",
+  "frozen_date": "2026-09-28",
+  "published_date": "2026-09-29",
+  "original_freeze_commit": "4290dca6dbb59cc7b856e98e32dffa1cd4c21864",
+  "serialization": "Exact file bytes: UTF-8, LF, final newline. Not a hash of reparsed JSON."
+}
