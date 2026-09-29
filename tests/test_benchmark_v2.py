@@ -290,7 +290,8 @@ def test_paired_cli_runs_both_graphs_and_preserves_question_pairs(tmp_path, monk
         (r["question_id"], r["repetition"]) for r in second
     }
     assert all(r["raw_answer"]["variant"] == "v2" for r in second)
-    assert all(r["raw_answer"]["status"] != "error" for r in second), second
+    errors = [r["raw_answer"] for r in second if r["raw_answer"]["status"] == "error"]
+    assert not errors, json.dumps(errors, ensure_ascii=False)
     assert all(r["observations"]["tokens"] is None for r in first + second)
     manifest = json.loads((target / "manifest.json").read_text(encoding="utf-8"))
     assert manifest["actual_attempts"] == 16
