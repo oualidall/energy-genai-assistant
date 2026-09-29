@@ -26,3 +26,6 @@ langsmith==0.1.83
 # ── Dev / test ────────────────────────────────────────────────────────────────
 pytest==8.2.2
 ruff==0.5.0
+
+# SQL AST validation (pure Python, no optional extras; see docs/v2/lot-4.md)
+sqlglot==25.10.0
