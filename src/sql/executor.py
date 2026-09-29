@@ -19,6 +19,9 @@ def run_query(sql: str, client: Any = None) -> list[dict[str, Any]]:
             use_legacy_sql=False, maximum_bytes_billed=10_000_000,
         )
         job = client.query(sql, job_config=config, timeout=10)
-        return [dict(row) for row in job.result(timeout=30, max_results=1000)]
+        rows = [dict(row) for row in job.result(timeout=30, max_results=1001)]
+        if len(rows) > 1000:
+            raise ValueError("Query result exceeds 1000 rows; refusing partial evidence")
+        return rows
     job = client.query(sql)
     return [dict(row) for row in job.result()]
