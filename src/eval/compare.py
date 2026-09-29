@@ -1,7 +1,7 @@
 """Offline benchmark CLI; live execution stays locked pending a priced plan.
 
 python -m src.eval.compare
-The v2 adapter will be registered in lot 4. No v1 copy is mislabeled as v2.
+V1 and v2 are interleaved with different offline fixtures; this is not a quality experiment.
 """
 
 from __future__ import annotations
@@ -105,12 +105,19 @@ def summarize(records: list[dict]) -> dict:
             "latency_p50_ns": nearest_rank(durations, 50),
             "latency_p95_ns": nearest_rank(durations, 95),
             "tool_calls": sum(r["observations"]["tool_calls"] for r in items),
+            "critic_coverage": str(Fraction(
+                sum(r["observations"].get("critic_calls", 0) > 0 for r in items), len(items),
+            )) if items else None,
+            "revision_rate": str(Fraction(
+                sum(r["observations"].get("revision_requests", 0) > 0 for r in items), len(items),
+            )) if items else None,
         }
     return result
 
 
 def evaluate(agent, questions: list[dict], reference: FixtureDatabase,
-             policy: dict, repetitions: int = 5, seed: int = 42) -> list[dict]:
+             policy: dict, repetitions: int = 5, seed: int = 42,
+             variant: str = "v1") -> list[dict]:
     if repetitions < 1:
         raise ValueError("Repetitions must be positive")
     # Validate references before invoking any agent.
@@ -137,6 +144,7 @@ def evaluate(agent, questions: list[dict], reference: FixtureDatabase,
             except Exception as exc:  # noqa: BLE001
                 error = type(exc).__name__
             elapsed = time.perf_counter_ns() - start
+            error = error or out.get("error")
             observations = agent.observations()
             if any(call["error"] for call in observations["sql_calls"]):
                 error = error or "ObservedToolError"
@@ -150,8 +158,8 @@ def evaluate(agent, questions: list[dict], reference: FixtureDatabase,
                 )
             records.append({
                 "schema_version": "1",
-                "record_id": f"v1:{q['id']}:{repetition}",
-                "variant": "v1", "question_id": q["id"], "category": q["category"],
+                "record_id": f"{variant}:{q['id']}:{repetition}",
+                "variant": variant, "question_id": q["id"], "category": q["category"],
                 "question": q["question"], "criterion": q["criterion"],
                 "difficulty": q.get("difficulty", "unclassified"),
                 "repetition": repetition, "raw_answer": out,
@@ -160,6 +168,33 @@ def evaluate(agent, questions: list[dict], reference: FixtureDatabase,
                 "judge_verdict": None, "human_verdict": None,
                 "answer_success": None,
             })
+    return records
+
+
+
+def evaluate_variants(agents: dict, questions: list[dict], reference: FixtureDatabase,
+                      policy: dict, repetitions: int, seed: int = 42) -> list[dict]:
+    """Interleave matched trials; never run all of v1 before all of v2."""
+    if repetitions < 1:
+        raise ValueError("Repetitions must be positive")
+    for q in questions:
+        if q["reference_sql"] and not reference.execute(q["reference_sql"]):
+            raise ValueError(f"Empty SQL reference: {q['id']}")
+    ordered = list(questions)
+    random.Random(seed).shuffle(ordered)
+    records = []
+    for repetition in range(repetitions):
+        for index, question in enumerate(ordered):
+            variants = list(agents)
+            if (repetition * len(ordered) + index) % 2:
+                variants.reverse()
+            for variant in variants:
+                record = evaluate(
+                    agents[variant], [question], reference, policy, 1, seed, variant,
+                )[0]
+                record["repetition"] = repetition
+                record["record_id"] = f"{variant}:{question['id']}:{repetition}"
+                records.append(record)
     return records
 
 
@@ -183,47 +218,49 @@ def write_outputs(destination: Path, manifest: dict, records: list[dict]) -> Non
             encoding="utf-8",
         )
 
-    summary = summarize(records)
+    summaries = {}
+    for variant in sorted({r["variant"] for r in records}):
+        selected = [r for r in records if r["variant"] == variant]
+        save(f"{variant}.json", selected)
+        summaries[variant] = summarize(selected)
     save("manifest.json", manifest)
-    save("v1.json", records)
-    save("summary.json", summary)
+    save("summary.json", {"schema_version": "2", "variants": summaries})
     lines = [
-        "# Offline v1 smoke run",
-        "",
-        "v2 is unavailable until lot 4. No v1/v2 gain is claimed.",
+        "# Offline graph smoke run", "",
+        "The two smoke model implementations differ; no Gemini or multi-agent quality gain is established.",
         "Natural-language correctness is unscored pending judge/human validation.",
         "SQL execution match does not establish final-answer correctness.",
     ]
     for title, is_difficulty in (("Overall and by category", False), ("By difficulty", True)):
         lines.extend([
             "", f"## {title}", "", MEASUREMENT_SCOPE, "",
-            "| Group | Attempts | SQL matched/scored | p50 ns | p95 ns | Latency n |",
-            "| --- | --- | --- | --- | --- | --- |",
+            "| Variant | Group | Attempts | SQL matched/scored | p50 ns | p95 ns | Latency n | Critic coverage | Revision rate |",
+            "| --- | --- | --- | --- | --- | --- | --- | --- | --- |",
         ])
-        for group, values in summary.items():
-            if group.startswith("difficulty:") != is_difficulty:
-                continue
-            label = group.removeprefix("difficulty:")
-            lines.append(
-                f"| {label} | {values['attempts']} | "
-                f"{values['execution_match_passed']}/{values['execution_match_scored']} | "
-                f"{values['latency_p50_ns']} | {values['latency_p95_ns']} | {values['latency_n']} |"
-            )
+        for variant, summary in summaries.items():
+            for group, values in summary.items():
+                if group.startswith("difficulty:") != is_difficulty:
+                    continue
+                label = group.removeprefix("difficulty:")
+                lines.append(
+                    f"| {variant} | {label} | {values['attempts']} | "
+                    f"{values['execution_match_passed']}/{values['execution_match_scored']} | "
+                    f"{values['latency_p50_ns']} | {values['latency_p95_ns']} | "
+                    f"{values['latency_n']} | {values['critic_coverage']} | {values['revision_rate']} |"
+                )
     (destination / "summary.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--mode", choices=["mock", "live"], default="mock")
-    parser.add_argument("--variant", choices=["v1", "v2", "both"], default="v1")
+    parser.add_argument("--variant", choices=["v1", "v2", "both"], default="both")
     parser.add_argument("--repetitions", type=int, default=5)
     parser.add_argument("--limit", type=int, default=None, help="Explicit stratified smoke subset")
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
     if args.mode != "mock":
         parser.error("Live mode locked: dated EUR estimate and enforced 5 EUR budget required.")
-    if args.variant != "v1":
-        parser.error("v2 adapter is not implemented yet; never substitute a v1 copy.")
     if args.repetitions < 1:
         parser.error("repetitions must be positive")
     if args.limit is not None and not 4 <= args.limit <= 40:
@@ -245,22 +282,28 @@ def main() -> None:
         questions = selected
     # Import only after the mode and frozen inputs have been checked.
     from src.eval.mock_runtime import MockV1
+    from src.eval.mock_v2 import MockV2
 
     started = datetime.now(UTC).isoformat()
     setup_start = time.perf_counter_ns()
-    database = FixtureDatabase.load()
-    agent = MockV1(database)
+    variants = ["v1", "v2"] if args.variant == "both" else [args.variant]
+    databases = {variant: FixtureDatabase.load() for variant in variants}
+    factories = {"v1": MockV1, "v2": MockV2}
+    agents = {variant: factories[variant](databases[variant]) for variant in variants}
     setup_ns = time.perf_counter_ns() - setup_start
     state = git_state()
     try:
-        records = evaluate(agent, questions, database, bank["reference_policy"], args.repetitions)
+        records = evaluate_variants(
+            agents, questions, databases[variants[0]], bank["reference_policy"], args.repetitions,
+        )
     finally:
-        database.close()
+        for database in databases.values():
+            database.close()
     manifest = {
-        "schema_version": "1", "protocol_version": "mock-smoke-2",
+        "schema_version": "1", "protocol_version": "mock-smoke-3",
         "started_at": started, "finished_at": datetime.now(UTC).isoformat(),
         "git": state, "bank_id": bank["bank_id"], "frozen_inputs": lock,
-        "mode": "mock", "variant": "v1", "model": "offline-smoke-v1",
+        "mode": "mock", "variants": variants, "models": {"v1": "offline-smoke-v1", "v2": "offline-smoke-v2"},
         "measurement_scope": MEASUREMENT_SCOPE,
         "bank_lock": json.loads((ROOT / "evals/bank.lock").read_text(encoding="utf-8")),
         "difficulty": {
@@ -268,13 +311,14 @@ def main() -> None:
             "sha256": hashlib.sha256((ROOT / "evals/difficulty.json").read_bytes()).hexdigest(),
             "mapping": difficulty["questions"],
         },
-        "mock_source_sha256": hashlib.sha256(
-            (ROOT / "src/eval/mock_runtime.py").read_bytes()
-        ).hexdigest(),
+        "mock_source_sha256": {
+            path: hashlib.sha256((ROOT / path).read_bytes()).hexdigest()
+            for path in ("src/eval/mock_runtime.py", "src/eval/mock_v2.py")
+        },
         "temperature": 0, "model_seed_supported": False, "harness_seed": 42,
         "repetitions": args.repetitions, "question_ids": [q["id"] for q in questions],
         "actual_attempts": len(records), "concurrency": 1,
-        "order": "seeded shuffle once; repetition-major", "setup_duration_ns": setup_ns,
+        "order": "seeded question order; repetition-major; alternating variant order per question", "setup_duration_ns": setup_ns,
         "latency": "monotonic ns; complete graph call; setup/scoring excluded; nearest rank",
         "tokens": None, "llm_api_cost_eur": "0", "total_cost_eur": None,
         "cost_note": "No provider calls. Host/CI cost not measured. Not a live price estimate.",
@@ -285,7 +329,9 @@ def main() -> None:
                          ("langgraph", "langchain-core", "pydantic", "numpy")},
         "limitations": [
             "Mock model always generates COUNT(*) for SQL; not representative of Gemini.",
-            "No live timeout, pricing, judge or v2 adapter is enabled.",
+            "No live model, pricing or judge is enabled.",
+            "V1/v2 mock policies differ; this comparison tests mechanics, not architecture quality.",
+            "Shared executor AST guard is stricter than the immutable historical v1 baseline.",
             "SQL match checks observed tool rows; final-answer correctness is unscored.",
         ],
     }
