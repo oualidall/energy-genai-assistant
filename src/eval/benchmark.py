@@ -8,6 +8,7 @@ import sqlite3
 from collections import Counter
 from datetime import date, timedelta
 from pathlib import Path
+from threading import RLock
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -118,7 +119,8 @@ class FixtureDatabase:
 
     def __init__(self, tables: dict[str, list[dict]]) -> None:
         _validate_snapshot(tables)
-        self.connection = sqlite3.connect(":memory:")
+        self._lock = RLock()
+        self.connection = sqlite3.connect(":memory:", check_same_thread=False)
         self.connection.row_factory = sqlite3.Row
         self.connection.execute("ATTACH DATABASE ':memory:' AS rte_energy")
         self.table_names = set(tables)
@@ -158,6 +160,11 @@ class FixtureDatabase:
         return cls(data["tables"])
 
     def execute(self, sql: str) -> list[dict]:
+        """Serialize access from LangGraph worker threads to the read-only fixture."""
+        with self._lock:
+            return self._execute(sql)
+
+    def _execute(self, sql: str) -> list[dict]:
         """Single read-only statement, bounded CPU, fresh authorization each call."""
         if not sql.strip().upper().startswith(("SELECT ", "WITH ")):
             raise ValueError("Read-only SELECT/WITH required")
