@@ -36,7 +36,7 @@ class V2SmokeModel:
                 ))
                 output = {"route": "rag" if document else "sql"}
         elif role == "sql":
-            output = {"sql": "SELECT COUNT(*) AS row_count FROM consommation_journaliere"}
+            output = {"sql": "SELECT COUNT(*) AS row_count FROM rte_energy.consommation_journaliere"}
         elif role == "synthesis":
             items = data["untrusted_evidence"]
             output = {
