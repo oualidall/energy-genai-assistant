@@ -16,6 +16,7 @@ import logging
 
 from fastapi import Depends, FastAPI
 
+from src.agent.contracts import AnswerResult
 from src.agent.graph import EnergyAgent
 from src.api.schemas import AskRequest, AskResponse, HealthResponse
 from src.config import settings
@@ -66,3 +67,18 @@ async def ask(request: AskRequest, agent: EnergyAgent = Depends(get_agent)) -> A
     logger.info("received question: %s", request.question)
     result = agent.answer(request.question)
     return AskResponse(answer=result["answer"], route=result["route"], sql=result["sql"])
+
+
+@functools.lru_cache(maxsize=1)
+def get_v2_agent():
+    """Offline v2 only; no provider initialization or paid calls."""
+    from src.eval.benchmark import FixtureDatabase
+    from src.eval.mock_v2 import MockV2
+
+    return MockV2(FixtureDatabase.load())
+
+
+@app.post("/ask/v2", response_model=AnswerResult, tags=["inference"])
+async def ask_v2(request: AskRequest, agent=Depends(get_v2_agent)) -> AnswerResult:
+    """Shared-state v2 against a synthetic SQLite snapshot and an offline model."""
+    return AnswerResult.model_validate(agent.answer(request.question))
