@@ -60,3 +60,25 @@ Target human effort is 45 minutes (5-minute briefing and approximately 30 second
 Implemented here: frozen bank, synthetic references, actual-v1 offline smoke execution, output records, percentiles, reference SQL comparison and human annotation workflow.
 
 Still required in subsequent lots: v2 graph, actual executor guard hardening, MCP, provider usage/cost capture, live/judge implementation, actual human annotations, paired full-run result commits and final README results. Model prices and real scores have not been invented. No paid API execution occurs in CI.
+
+## September 29 clarification: scope, explicit lock and difficulty
+
+All current measurements use a **synthetic snapshot in SQLite, not BigQuery under real conditions**. They cannot establish BigQuery dialect correctness, IAM enforcement, network/service latency, query cost, scalability, real RTE data quality or Gemini answer quality. This scope is repeated immediately before each generated result table and saved in each summary group.
+
+The explicit bank.lock publishes the same SHA-256 as the original freeze.json, with freeze and publication dates. Startup rejects mismatches, missing locks and disagreement between locks before agent construction. bank.json has not been modified.
+
+Exact inventory (question counts, not performance results):
+
+| Category | Historical | Owner | Assistant | Total |
+| --- | ---: | ---: | ---: | ---: |
+| SQL (lookup and aggregation) | 12 | 3 | 0 | 15 |
+| Documentary | 0 | 2 | 7 | 9 |
+| Ambiguous | 0 | 2 | 6 | 8 |
+| Out of scope | 0 | 3 | 5 | 8 |
+| **Total** | **12** | **10** | **18** | **40** |
+
+Reproduce these counts with `python -m src.eval.benchmark`.
+
+difficulty.json contains all 40 IDs: 15 facile, 16 moyen and 9 difficile, with level definitions and individual rationales. It was added after initial smoke runs, before the multi-agent comparison, based on task requirements. New raw records include the level; summaries include difficulty groups and their own denominators. Run manifests preserve the full mapping and its SHA-256. Historical outputs remain unchanged and unclassified unless explicitly analyzed as a separately identified retrospective report.
+
+The report protocol is now mock-smoke-2. It adds difficulty metadata and scope labels; it does not change the frozen questions, criteria or SQL references.
