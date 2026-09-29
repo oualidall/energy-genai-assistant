@@ -21,7 +21,14 @@ from importlib.metadata import version
 from pathlib import Path
 from uuid import uuid4
 
-from src.eval.benchmark import ROOT, FixtureDatabase, load_bank, verify_freeze
+from src.eval.benchmark import ROOT, FixtureDatabase, load_bank, load_difficulty, verify_freeze
+
+MEASUREMENT_SCOPE = (
+    "Measures use a synthetic snapshot in SQLite, not BigQuery under real conditions. "
+    "They cannot establish BigQuery SQL compatibility, network/service latency, "
+    "BigQuery query cost, IAM enforcement, scalability, real RTE data quality, "
+    "or Gemini answer quality with this offline smoke model."
+)
 
 
 def cell_equal(left, right, absolute: float, relative: float) -> bool:
@@ -79,12 +86,14 @@ def summarize(records: list[dict]) -> dict:
     groups["all"] = records
     for record in records:
         groups[record["category"]].append(record)
+        groups["difficulty:" + record.get("difficulty", "unclassified")].append(record)
     result = {}
     for category, items in groups.items():
         scored = [r for r in items if r["execution_match"] is not None]
         passed = sum(r["execution_match"] is True for r in scored)
         durations = [r["duration_ns"] for r in items]
         result[category] = {
+            "measurement_scope": MEASUREMENT_SCOPE,
             "attempts": len(items),
             "errors": sum(r["error"] is not None for r in items),
             "execution_match_passed": passed,
@@ -144,6 +153,7 @@ def evaluate(agent, questions: list[dict], reference: FixtureDatabase,
                 "record_id": f"v1:{q['id']}:{repetition}",
                 "variant": "v1", "question_id": q["id"], "category": q["category"],
                 "question": q["question"], "criterion": q["criterion"],
+                "difficulty": q.get("difficulty", "unclassified"),
                 "repetition": repetition, "raw_answer": out,
                 "duration_ns": elapsed, "error": error,
                 "observations": observations, "execution_match": match,
@@ -180,20 +190,25 @@ def write_outputs(destination: Path, manifest: dict, records: list[dict]) -> Non
     lines = [
         "# Offline v1 smoke run",
         "",
-        "Synthetic data and a deliberately limited smoke model; NOT Gemini quality.",
         "v2 is unavailable until lot 4. No v1/v2 gain is claimed.",
         "Natural-language correctness is unscored pending judge/human validation.",
         "SQL execution match does not establish final-answer correctness.",
-        "",
-        "| Category | Attempts | SQL matched/scored | p50 ns | p95 ns | Latency n |",
-        "| --- | --- | --- | --- | --- | --- |",
     ]
-    for category, values in summary.items():
-        lines.append(
-            f"| {category} | {values['attempts']} | "
-            f"{values['execution_match_passed']}/{values['execution_match_scored']} | "
-            f"{values['latency_p50_ns']} | {values['latency_p95_ns']} | {values['latency_n']} |"
-        )
+    for title, is_difficulty in (("Overall and by category", False), ("By difficulty", True)):
+        lines.extend([
+            "", f"## {title}", "", MEASUREMENT_SCOPE, "",
+            "| Group | Attempts | SQL matched/scored | p50 ns | p95 ns | Latency n |",
+            "| --- | --- | --- | --- | --- | --- |",
+        ])
+        for group, values in summary.items():
+            if group.startswith("difficulty:") != is_difficulty:
+                continue
+            label = group.removeprefix("difficulty:")
+            lines.append(
+                f"| {label} | {values['attempts']} | "
+                f"{values['execution_match_passed']}/{values['execution_match_scored']} | "
+                f"{values['latency_p50_ns']} | {values['latency_p95_ns']} | {values['latency_n']} |"
+            )
     (destination / "summary.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
@@ -215,7 +230,9 @@ def main() -> None:
         parser.error("subset limit must be 4..40")
     lock = verify_freeze()
     bank = load_bank()
-    questions = bank["questions"]
+    difficulty = load_difficulty(bank)
+    questions = [dict(q, difficulty=difficulty["questions"][q["id"]]["level"])
+                 for q in bank["questions"]]
     if args.limit is not None:
         buckets = defaultdict(list)
         for q in questions:
@@ -240,10 +257,17 @@ def main() -> None:
     finally:
         database.close()
     manifest = {
-        "schema_version": "1", "protocol_version": "mock-smoke-1",
+        "schema_version": "1", "protocol_version": "mock-smoke-2",
         "started_at": started, "finished_at": datetime.now(UTC).isoformat(),
         "git": state, "bank_id": bank["bank_id"], "frozen_inputs": lock,
         "mode": "mock", "variant": "v1", "model": "offline-smoke-v1",
+        "measurement_scope": MEASUREMENT_SCOPE,
+        "bank_lock": json.loads((ROOT / "evals/bank.lock").read_text(encoding="utf-8")),
+        "difficulty": {
+            "assigned_date": difficulty["assigned_date"], "basis": difficulty["basis"],
+            "sha256": hashlib.sha256((ROOT / "evals/difficulty.json").read_bytes()).hexdigest(),
+            "mapping": difficulty["questions"],
+        },
         "mock_source_sha256": hashlib.sha256(
             (ROOT / "src/eval/mock_runtime.py").read_bytes()
         ).hexdigest(),
