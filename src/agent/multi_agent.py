@@ -29,10 +29,10 @@ from src.agent.contracts import (
 )
 from src.agent.tools import Tools
 from src.data.schema import render_schema_prompt
-from src.sql.guard import UnsafeSQL
+from src.sql.guard import UnsafeSQLError
 
 
-class BudgetExceeded(RuntimeError):
+class BudgetExceededError(RuntimeError):
     pass
 
 
@@ -112,9 +112,9 @@ class MultiAgent:
             raise ModelContractError("Invalid input accounting")
         reserved = input_units + self.limits.max_output_tokens
         if len(ctx.model_calls) >= self.limits.max_model_calls:
-            raise BudgetExceeded("model_calls")
+            raise BudgetExceededError("model_calls")
         if ctx.reserved + reserved > self.limits.max_tokens:
-            raise BudgetExceeded("tokens")
+            raise BudgetExceededError("tokens")
         # No refund: reserve each maximum before the model call, including failures.
         ctx.reserved += reserved
         call = {"role": role, "input_units": input_units, "output_units": None,
@@ -141,7 +141,7 @@ class MultiAgent:
 
     def _tool(self, ctx: Context, name: str, argument: str) -> None:
         if len(ctx.tool_calls) >= self.limits.max_tool_calls:
-            raise BudgetExceeded("tool_calls")
+            raise BudgetExceededError("tool_calls")
         call_id = f"T{len(ctx.tool_calls) + 1}"
         entry = {"id": call_id, "name": name, "duration_ns": 0, "error": None,
                  "sql": argument if name == "query_readonly" else None,
@@ -260,18 +260,18 @@ class MultiAgent:
             ctx = state["context"]
             try:
                 if ctx.steps >= self.limits.max_steps:
-                    raise BudgetExceeded("steps")
+                    raise BudgetExceededError("steps")
                 ctx.steps += 1
                 handler(ctx)
-            except BudgetExceeded as exc:
+            except BudgetExceededError as exc:
                 ctx.status = "budget_exhausted"
                 ctx.answer = "Le budget de cette requête est épuisé ; aucune réponse non vérifiée n'est fournie."
                 ctx.error = str(exc)
                 ctx.next_node = "end"
-            except UnsafeSQL:
+            except UnsafeSQLError:
                 ctx.status = "refused"
                 ctx.answer = "Cette requête sort du périmètre SQL autorisé en lecture seule."
-                ctx.error = "UnsafeSQL"
+                ctx.error = "UnsafeSQLError"
                 ctx.next_node = "end"
             except (ValidationError, ModelContractError):
                 ctx.status = "error"
