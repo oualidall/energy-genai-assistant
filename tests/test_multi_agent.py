@@ -11,7 +11,7 @@ from src.agent.contracts import AnswerResult, Limits
 from src.agent.multi_agent import MultiAgent
 from src.agent.tools import LocalTools, evidence
 from src.sql.executor import run_query
-from src.sql.guard import UnsafeSQL, validate_readonly
+from src.sql.guard import UnsafeSQLError, validate_readonly
 
 
 class ScriptedModel:
@@ -181,7 +181,7 @@ def test_actual_executor_rejects_before_client_submission(sql):
     class Client:
         def query(self, sql):
             pytest.fail("Unsafe SQL must never reach the client")
-    with pytest.raises(UnsafeSQL):
+    with pytest.raises(UnsafeSQLError):
         run_query(sql, client=Client())
 
 
@@ -189,7 +189,7 @@ def test_local_sql_tool_also_blocks_writes_before_callback():
     def never(_sql):
         pytest.fail("Write reached query callback")
     tools = LocalTools(lambda q: [], never, "corpus", "snapshot")
-    with pytest.raises(UnsafeSQL):
+    with pytest.raises(UnsafeSQLError):
         tools.query("DELETE FROM consommation_journaliere", "T1")
 
 
