@@ -27,5 +27,5 @@ jobs:
       - name: Preserve smoke records
         uses: actions/upload-artifact@v4
         with:
-          name: mock-v1-smoke
+          name: mock-paired-smoke
           path: work/ci-eval/
