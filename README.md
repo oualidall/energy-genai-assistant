@@ -12,8 +12,8 @@ These measurements cannot establish BigQuery dialect compatibility, IAM enforcem
 
 - v1: route to documentary retrieval, SQL generation, or a direct answer; FastAPI `/ask` and `/healthz`.
 - Existing Gemini integration and BigQuery execution path remain available in source. The frozen evaluation currently uses neither service.
-- v2 groundwork: frozen 40-question bank, SHA-256 checks, synthetic fixture, offline v1 runner, latency records and blinded human annotation tooling.
-- Pending: specialized-agent v2 graph, hardened live SQL execution boundary, MCP tools, live usage accounting, validated judge and paired campaign results.
+- v2: bounded shared-state supervisor/Retrieval/SQL/Critique graph, typed evidence, offline `/ask/v2`, paired mock evaluation and blinded human annotation tooling.
+- Shared SELECT-only AST execution guard. Pending: MCP transport, live usage accounting, validated judge and committed full-campaign results.
 
 The v1 reference is commit `3af1e67185db5f5c172dd0cb5482f132560fda0b`. Python 3.12 is used by Docker and CI.
 
@@ -25,7 +25,7 @@ From the repository root with Python 3.12 and the pinned dependencies installed:
 python -m src.eval.compare
 ```
 
-The current command runs v1 only, 40 questions and five repetitions. It writes a new results directory with a manifest, raw responses, aggregate JSON and Markdown tables by category and difficulty. This is the configured run size, not a claim that a full paired campaign has been completed.
+The command defaults to both variants, 40 questions and five repetitions: 400 offline attempts. It writes a new results directory with a manifest, raw responses, aggregate JSON and Markdown tables by category and difficulty. This is the configured run size, not a claim that a full paired campaign has been completed.
 
 CI uses an explicit eight-question stratified mock subset:
 
@@ -33,7 +33,7 @@ CI uses an explicit eight-question stratified mock subset:
 python -m src.eval.compare --limit 8 --repetitions 1 --output work/ci-eval
 ```
 
-No LLM API credentials are required. See [evaluation instructions](evals/README.md) for annotation commands. Live mode and v2 selection currently fail explicitly rather than substituting mock or v1 results.
+No LLM API credentials are required. See [evaluation instructions](evals/README.md) for annotation commands. Live mode remains disabled pending the dated EUR estimate and enforced campaign controls. The mock critic is not a semantic judge; mock accounting units are not provider tokens.
 
 ## Frozen bank and exact counts
 
@@ -62,6 +62,10 @@ python -m src.eval.benchmark
 ```
 
 [Difficulty metadata](evals/difficulty.json) is separate: **15 facile, 16 moyen, 9 difficile**. It supplies definitions for all three levels and a rationale for every ID. Labels were added on 2026-09-29 after initial mock smoke runs and before the v1/v2 comparison, based on task requirements rather than outcomes. Each future run records the metadata hash and mapping. Old artifacts are not silently relabeled.
+
+## Architecture
+
+See [the shared-state graph and exact budgets](docs/v2/lot-4.md). The v1 prompts and routing remain available; its execution boundary now shares the stricter SQL guard, a documented difference from the historical reference.
 
 ## Results
 
