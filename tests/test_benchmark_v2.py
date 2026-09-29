@@ -12,7 +12,14 @@ from types import SimpleNamespace
 import pytest
 
 from src.eval.annotation import agreement, export_annotations, sample_records
-from src.eval.benchmark import ROOT, FixtureDatabase, load_bank, verify_freeze
+from src.eval.benchmark import (
+    ROOT,
+    FixtureDatabase,
+    inventory,
+    load_bank,
+    load_difficulty,
+    verify_freeze,
+)
 from src.eval.compare import evaluate, main, nearest_rank, rows_equal, summarize
 
 
@@ -34,6 +41,7 @@ def test_freeze_rejects_modified_bytes(tmp_path):
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes((ROOT / name).read_bytes())
     (tmp_path / "evals/freeze.json").write_text(json.dumps(lock), encoding="utf-8")
+    (tmp_path / "evals/bank.lock").write_bytes((ROOT / "evals/bank.lock").read_bytes())
     with (tmp_path / "evals/bank.json").open("ab") as handle:
         handle.write(b" ")
     with pytest.raises(ValueError, match="Frozen input"):
@@ -172,4 +180,97 @@ def test_cli_smoke_writes_observed_results_and_null_quality(tmp_path, monkeypatc
     assert all(r["answer_success"] is None for r in records)
     assert all(r["observations"]["tokens"] is None for r in records)
     assert manifest["mode"] == "mock"
-    assert Path(target / "summary.md").exists()
+    report = Path(target / "summary.md").read_text(encoding="utf-8")
+    assert report.count("Measures use a synthetic snapshot in SQLite") == 2
+    assert "not BigQuery under real conditions" in report
+    assert "## By difficulty" in report
+    assert all(r["difficulty"] in {"facile", "moyen", "difficile"} for r in records)
+    assert manifest["bank_lock"]["sha256"] == verify_freeze()["files"]["evals/bank.json"]
+    assert len(manifest["difficulty"]["sha256"]) == 64
+
+
+def test_inventory_counts_authors_and_categories_exactly():
+    result = inventory(load_bank())
+    assert result["total"] == result["unique_ids"] == 40
+    assert result["by_author"] == {"legacy": 12, "owner": 10, "assistant": 18}
+    assert result["by_category_and_author"] == {
+        "agregation_sql": {"legacy": 12, "owner": 3, "assistant": 0, "total": 15},
+        "factuel_documentaire": {"legacy": 0, "owner": 2, "assistant": 7, "total": 9},
+        "ambigu": {"legacy": 0, "owner": 2, "assistant": 6, "total": 8},
+        "hors_perimetre": {"legacy": 0, "owner": 3, "assistant": 5, "total": 8},
+    }
+
+
+@pytest.mark.parametrize("failure", ["bank", "lock_hash", "missing_lock"])
+def test_cli_stops_before_agent_when_bank_lock_is_invalid(tmp_path, monkeypatch, failure):
+    lock = verify_freeze()
+    for name in [*lock["files"], "evals/freeze.json", "evals/bank.lock"]:
+        target = tmp_path / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes((ROOT / name).read_bytes())
+    if failure == "bank":
+        with (tmp_path / "evals/bank.json").open("ab") as handle:
+            handle.write(b"\n")
+    elif failure == "lock_hash":
+        target = tmp_path / "evals/bank.lock"
+        data = json.loads(target.read_text())
+        data["sha256"] = "0" * 64
+        target.write_text(json.dumps(data))
+    else:
+        (tmp_path / "evals/bank.lock").unlink()
+
+    def forbidden_agent(*args, **kwargs):
+        pytest.fail("Agent must not be constructed on invalid frozen inputs")
+
+    monkeypatch.setattr("src.eval.mock_runtime.MockV1", forbidden_agent)
+    monkeypatch.setattr("src.eval.compare.verify_freeze", lambda: verify_freeze(tmp_path))
+    monkeypatch.setattr("sys.argv", ["compare"])
+    with pytest.raises((ValueError, FileNotFoundError)):
+        main()
+
+
+def test_difficulty_covers_exactly_every_question():
+    bank = load_bank()
+    difficulty = load_difficulty(bank)
+    counts = Counter(item["level"] for item in difficulty["questions"].values())
+    assert counts == {"facile": 15, "moyen": 16, "difficile": 9}
+
+
+@pytest.mark.parametrize("failure", ["missing", "extra", "bad_level", "empty_reason"])
+def test_difficulty_invalid_mapping_fails(tmp_path, failure):
+    bank = load_bank()
+    data = load_difficulty(bank)
+    if failure == "missing":
+        del data["questions"]["H01"]
+    elif failure == "extra":
+        data["questions"]["unknown"] = {"level": "facile", "reason": "Not in bank"}
+    elif failure == "bad_level":
+        data["questions"]["H01"]["level"] = "expert"
+    else:
+        data["questions"]["H01"]["reason"] = ""
+    (tmp_path / "evals").mkdir()
+    (tmp_path / "evals/bank.json").write_bytes((ROOT / "evals/bank.json").read_bytes())
+    (tmp_path / "evals/difficulty.json").write_text(
+        json.dumps(data, ensure_ascii=False), encoding="utf-8",
+    )
+    with pytest.raises(ValueError):
+        load_difficulty(bank, tmp_path)
+
+
+def test_difficulty_aggregation_keeps_denominators_and_failures():
+    records = [
+        {"category": "agregation_sql", "difficulty": "facile", "execution_match": True,
+         "duration_ns": 10, "error": None, "observations": {"tool_calls": 1}},
+        {"category": "agregation_sql", "difficulty": "facile", "execution_match": False,
+         "duration_ns": 30, "error": "Timeout", "observations": {"tool_calls": 1}},
+        {"category": "ambigu", "difficulty": "difficile", "execution_match": None,
+         "duration_ns": 20, "error": None, "observations": {"tool_calls": 0}},
+    ]
+    summary = summarize(records)
+    easy = summary["difficulty:facile"]
+    assert easy["attempts"] == easy["latency_n"] == 2
+    assert easy["errors"] == 1
+    assert easy["execution_match_fraction"] == "1/2"
+    assert easy["latency_p50_ns"] == 10
+    assert easy["latency_p95_ns"] == 30
+    assert summary["difficulty:difficile"]["execution_match_scored"] == 0
