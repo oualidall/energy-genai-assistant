@@ -171,7 +171,7 @@ def test_live_mode_is_blocked_before_any_agent_construction(monkeypatch):
 def test_cli_smoke_writes_observed_results_and_null_quality(tmp_path, monkeypatch):
     target = tmp_path / "run"
     monkeypatch.setattr("sys.argv", [
-        "compare", "--limit", "4", "--repetitions", "1", "--output", str(target),
+        "compare", "--variant", "v1", "--limit", "4", "--repetitions", "1", "--output", str(target),
     ])
     main()
     records = json.loads((target / "v1.json").read_text(encoding="utf-8"))
@@ -274,3 +274,24 @@ def test_difficulty_aggregation_keeps_denominators_and_failures():
     assert easy["latency_p50_ns"] == 10
     assert easy["latency_p95_ns"] == 30
     assert summary["difficulty:difficile"]["execution_match_scored"] == 0
+
+
+def test_paired_cli_runs_both_graphs_and_preserves_question_pairs(tmp_path, monkeypatch):
+    target = tmp_path / "paired"
+    monkeypatch.setattr("sys.argv", [
+        "compare", "--variant", "both", "--limit", "4", "--repetitions", "2",
+        "--output", str(target),
+    ])
+    main()
+    first = json.loads((target / "v1.json").read_text(encoding="utf-8"))
+    second = json.loads((target / "v2.json").read_text(encoding="utf-8"))
+    assert len(first) == len(second) == 8
+    assert {(r["question_id"], r["repetition"]) for r in first} == {
+        (r["question_id"], r["repetition"]) for r in second
+    }
+    assert all(r["raw_answer"]["variant"] == "v2" for r in second)
+    assert all(r["raw_answer"]["status"] != "error" for r in second)
+    assert all(r["observations"]["tokens"] is None for r in first + second)
+    manifest = json.loads((target / "manifest.json").read_text(encoding="utf-8"))
+    assert manifest["actual_attempts"] == 16
+    assert manifest["variants"] == ["v1", "v2"]
