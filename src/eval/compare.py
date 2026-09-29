@@ -144,6 +144,7 @@ def evaluate(agent, questions: list[dict], reference: FixtureDatabase,
             except Exception as exc:  # noqa: BLE001
                 error = type(exc).__name__
             elapsed = time.perf_counter_ns() - start
+            out = out if isinstance(out, dict) else {}
             error = error or out.get("error")
             observations = agent.observations()
             if any(call["error"] for call in observations["sql_calls"]):
