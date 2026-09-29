@@ -19,7 +19,7 @@ The snapshot is synthetic and contains all July/August days. It is not a downloa
 python -m src.eval.compare
 ```
 
-The current lot-2 default runs the actual v1 graph against offline injected dependencies for all 40 questions, five repetitions each. It creates 200 attempt records in a new evals/results/<run-id>/ directory, with manifest.json, v1.json, summary.json and summary.md. This describes the command's behavior, not a claim that a full run has already been completed.
+The default runs the actual v1 and v2 graphs against offline injected dependencies for all 40 questions, five repetitions each. It creates 400 attempt records in a new evals/results/<run-id>/ directory, with manifest.json, v1.json, v2.json, summary.json and summary.md. This describes the command's behavior, not a claim that a full run has already been completed.
 
 CI uses an explicit stratified subset:
 
@@ -31,7 +31,7 @@ The subset takes questions round-robin from sorted category buckets in frozen ba
 
 The smoke LLM has no access to golden answers. It deliberately returns a generic COUNT query for SQL prompts and copies supplied evidence for synthesis. This exercises graph/tool/evaluator plumbing, not Gemini reasoning. SQL execution match is reported separately from final answer correctness, which remains unscored. Do not put these smoke quality scores in a CV as Gemini performance.
 
-v2/both selections fail explicitly until the v2 adapter is implemented in lot 4. Live mode fails before model initialization until a dated euro estimate and conservative enforced bounds fit the total 5 EUR cap. No fake v2 baseline, judge score or provider token usage is substituted.
+Both variants are implemented with offline adapters. Their mock policies differ, so quality differences cannot be attributed to orchestration alone. The critic is a structural smoke fixture, not a semantic judge. Live mode fails before model initialization until a dated euro estimate and conservative enforced bounds fit the total 5 EUR cap. No fake v2 baseline, judge score or provider token usage is substituted.
 
 The measured latency uses integer monotonic nanoseconds and nearest-rank p50/p95 with n. Failures stay in the denominator. Setup is separate. This smoke protocol is local injection; the final paired v1/v2 experiment will use common MCP transport. No live provider timeout or billing guarantee is implied.
 
@@ -57,9 +57,9 @@ Target human effort is 45 minutes (5-minute briefing and approximately 30 second
 
 ## Current boundaries
 
-Implemented here: frozen bank, synthetic references, actual-v1 offline smoke execution, output records, percentiles, reference SQL comparison and human annotation workflow.
+Implemented here: frozen bank, synthetic references, actual v1/v2 offline graph execution, bounded v2 retries/accounting, output records, percentiles, reference SQL comparison and human annotation workflow.
 
-Still required in subsequent lots: v2 graph, actual executor guard hardening, MCP, provider usage/cost capture, live/judge implementation, actual human annotations, paired full-run result commits and final README results. Model prices and real scores have not been invented. No paid API execution occurs in CI.
+Still required in subsequent lots: MCP, provider usage/cost capture, live/judge implementation, actual human annotations, paired full-run result commits and final README results. Model prices and real scores have not been invented. No paid API execution occurs in CI.
 
 ## September 29 clarification: scope, explicit lock and difficulty
 
@@ -81,4 +81,4 @@ Reproduce these counts with `python -m src.eval.benchmark`.
 
 difficulty.json contains all 40 IDs: 15 facile, 16 moyen and 9 difficile, with level definitions and individual rationales. It was added after initial smoke runs, before the multi-agent comparison, based on task requirements. New raw records include the level; summaries include difficulty groups and their own denominators. Run manifests preserve the full mapping and its SHA-256. Historical outputs remain unchanged and unclassified unless explicitly analyzed as a separately identified retrospective report.
 
-The report protocol is now mock-smoke-2. It adds difficulty metadata and scope labels; it does not change the frozen questions, criteria or SQL references.
+The paired report protocol is mock-smoke-3. It preserves difficulty metadata and scope labels, records alternating variant order and mock source hashes, and does not change frozen inputs. Provider token counts remain null. V1 shares the new executor guard; this deviation from the historical baseline is recorded. See [lot 4](../docs/v2/lot-4.md).
