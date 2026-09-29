@@ -199,4 +199,10 @@ class FixtureDatabase:
 
 
 if __name__ == "__main__":
-    print(json.dumps(inventory(load_bank()), ensure_ascii=False, indent=2))
+    bank = load_bank()
+    report = inventory(bank)
+    difficulty = load_difficulty(bank)
+    report["by_difficulty"] = dict(Counter(
+        item["level"] for item in difficulty["questions"].values()
+    ))
+    print(json.dumps(report, ensure_ascii=False, indent=2))
