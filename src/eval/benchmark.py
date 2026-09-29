@@ -17,6 +17,16 @@ CATEGORIES = {"agregation_sql", "factuel_documentaire", "ambigu", "hors_perimetr
 def verify_freeze(root: Path = ROOT) -> dict[str, Any]:
     """Fail closed before answers are generated when any frozen byte changes."""
     lock = json.loads((root / "evals/freeze.json").read_text(encoding="utf-8"))
+    bank_lock = json.loads((root / "evals/bank.lock").read_text(encoding="utf-8"))
+    expected = bank_lock["sha256"]
+    if (bank_lock["algorithm"] != "sha256" or bank_lock["path"] != "evals/bank.json"
+            or expected != lock["files"]["evals/bank.json"]):
+        raise ValueError("bank.lock disagrees with the original freeze")
+    date.fromisoformat(bank_lock["frozen_date"])
+    date.fromisoformat(bank_lock["published_date"])
+    actual = hashlib.sha256((root / "evals/bank.json").read_bytes()).hexdigest()
+    if actual != expected:
+        raise ValueError("Frozen input changed: evals/bank.json (bank.lock)")
     for name, expected in lock["files"].items():
         actual = hashlib.sha256((root / name).read_bytes()).hexdigest()
         if actual != expected:
@@ -42,6 +52,42 @@ def load_bank(root: Path = ROOT) -> dict[str, Any]:
         if (q["category"] == "agregation_sql") != bool(q["reference_sql"]):
             raise ValueError("SQL references must match SQL category")
     return bank
+
+
+def inventory(bank: dict[str, Any]) -> dict[str, Any]:
+    """Compute counts from records, never from the bank's display name."""
+    rows = {}
+    authors = ("legacy", "owner", "assistant")
+    for category in sorted(CATEGORIES):
+        selected = [q for q in bank["questions"] if q["category"] == category]
+        rows[category] = {author: sum(q["author"] == author for q in selected)
+                          for author in authors}
+        rows[category]["total"] = len(selected)
+    return {
+        "total": len(bank["questions"]),
+        "unique_ids": len({q["id"] for q in bank["questions"]}),
+        "by_category_and_author": rows,
+        "by_author": {author: sum(q["author"] == author for q in bank["questions"])
+                      for author in authors},
+    }
+
+
+def load_difficulty(bank: dict[str, Any], root: Path = ROOT) -> dict[str, Any]:
+    """External task-complexity labels; never changes frozen question records."""
+    data = json.loads((root / "evals/difficulty.json").read_text(encoding="utf-8"))
+    bank_hash = hashlib.sha256((root / "evals/bank.json").read_bytes()).hexdigest()
+    if data["bank_sha256"] != bank_hash:
+        raise ValueError("Difficulty metadata targets a different bank")
+    levels = {"facile", "moyen", "difficile"}
+    if set(data["levels"]) != levels or any(not s.strip() for s in data["levels"].values()):
+        raise ValueError("Missing difficulty-level justifications")
+    expected_ids = {q["id"] for q in bank["questions"]}
+    if set(data["questions"]) != expected_ids:
+        raise ValueError("Difficulty IDs must match every frozen question exactly")
+    for item in data["questions"].values():
+        if item["level"] not in levels or not item["reason"].strip():
+            raise ValueError("Invalid difficulty or missing justification")
+    return data
 
 
 def _validate_snapshot(tables: dict[str, list[dict]]) -> None:
@@ -150,3 +196,7 @@ class FixtureDatabase:
 
     def close(self) -> None:
         self.connection.close()
+
+
+if __name__ == "__main__":
+    print(json.dumps(inventory(load_bank()), ensure_ascii=False, indent=2))
