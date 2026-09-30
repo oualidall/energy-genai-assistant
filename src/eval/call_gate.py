@@ -150,6 +150,8 @@ class CallGate:
                     result = ("old", dict(old))
                 else:
                     rows = self.db.execute("SELECT * FROM calls").fetchall()
+                    if any(r["state"] in {"pending", "uncertain"} for r in rows):
+                        raise ResumeBlockedError("Unreconciled call blocks campaign")
                     if sum(r["actual"] if r["actual"] is not None else r["reserve"]
                            for r in rows) + reserve > self.cap:
                         raise BudgetLimitError("Campaign budget blocks provider call")
