@@ -22,6 +22,8 @@ jobs:
           GCP_PROJECT_ID: "energy-genai-assistant"
           BIGQUERY_DATASET: "rte_energy"
           LOG_LEVEL: "INFO"
+      - name: Frozen bank inventory (categories, authors, difficulty)
+        run: python -m src.eval.benchmark
       - name: Offline stratified benchmark
         run: python -m src.eval.compare --limit 8 --repetitions 1 --output work/ci-eval
       - name: Preserve smoke records
