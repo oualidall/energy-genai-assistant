@@ -11,6 +11,7 @@ import sqlite3
 import time
 from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta
+from decimal import Decimal
 from pathlib import Path
 from threading import RLock
 from zoneinfo import ZoneInfo
@@ -218,7 +219,7 @@ class CallGate:
                 self._wait(call_id, data, "configured_quota")
             if action == "old":
                 if data["state"] == "done":
-                    return json.loads(data["output"])
+                    return json.loads(data["output"])["output"]
                 if data["state"] == "rate_limited":
                     self._wait(call_id, data["retry_at"], "provider_429")
                     continue
@@ -231,7 +232,7 @@ class CallGate:
                 actual = cost(model, incoming, outgoing)
                 if incoming > input_tokens or outgoing > max_output_tokens:
                     raise UsageContractError("Provider usage exceeds reservation; stop campaign")
-                output = canonical(response["output"])
+                output = canonical(response)
                 with self.lock:
                     self.db.execute(
                         "UPDATE calls SET state='done', actual=?, input_used=?, output_used=?, "
@@ -261,6 +262,11 @@ class CallGate:
         with self.lock:
             rows = [dict(r) for r in self.db.execute("SELECT * FROM calls ORDER BY started, id")]
             waits = [dict(r) for r in self.db.execute("SELECT * FROM waits")]
+        for row in rows:
+            if row["actual"] is not None:
+                row["hypothetical_paid_usd"] = str(Decimal(row["actual"]) / Decimal(1200000000))
+            else:
+                row["hypothetical_paid_usd"] = None
         return {
             "schema_version": "1", "price_date": PRICE_DATE,
             "cost_kind": "hypothetical_paid_budget; 1 USD=1 EUR plus 20% provision",
