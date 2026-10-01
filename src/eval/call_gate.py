@@ -168,7 +168,7 @@ class CallGate:
                     minute = [r for r in own if r["started"] > now - 60]
                     day_start, day_end = pacific_window(now)
                     daily = [r for r in own if r["started"] >= day_start]
-                    until = now
+                    until = max([now] + [r["retry_at"] for r in own if r["retry_at"]])
                     if len(daily) >= quota.rpd:
                         until = max(until, day_end)
                     if (len(minute) >= quota.rpm
