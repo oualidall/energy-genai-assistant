@@ -17,7 +17,9 @@ jobs:
           cache: pip
       - run: pip install -r requirements.txt
       - run: ruff check src/ tests/
-      - run: pytest -q
+      - name: Budget reservation and quota enforcement (mock transport)
+        run: pytest -v tests/test_call_gate.py
+      - run: pytest -q --ignore=tests/test_call_gate.py
         env:
           GCP_PROJECT_ID: "energy-genai-assistant"
           BIGQUERY_DATASET: "rte_energy"
