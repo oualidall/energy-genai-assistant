@@ -84,6 +84,12 @@ SQL execution match is separate from final-answer correctness. Final-answer and 
 - Development checks: `python -m ruff check src/ tests/` and `python -m pytest -q`.
 - Design: [baseline and contracts](docs/v2/baseline-and-contracts.md), [measurement protocol](docs/v2/measurement-protocol.md), [owner constraints and refusal rubric](docs/v2/refusal-and-review-rules.md).
 
+## Free-tier controls and resumption
+
+[Free-tier controls](docs/v2/free-tier-controls.md) document durable pre-call monetary reservations, quota waits, uncertain-call handling, compact judge inputs and the six-question pilot plan. These controls are tested with injected mock transport; the Gemini adapter and project-specific Free status/quotas remain unverified. Paid mode is not authorized and live mode remains disabled. CI explicitly prints budget-blocking test names and the frozen category/difficulty inventory.
+
+The offline benchmark can resume completed trials with `python -m src.eval.compare --checkpoint work/campaign.sqlite --output work/campaign-results` after creating `work/`. Keep the same source and configuration when resuming.
+
 ## Cost and delivery limits
 
 Total effective-work budget: five days on the minimal path 1 -> 2 -> 4 -> minimal 3 -> 5 -> reduced 6. Stop and report proposed cuts if a lot exceeds its allocation.
