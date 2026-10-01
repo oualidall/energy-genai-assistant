@@ -174,7 +174,7 @@ def evaluate(agent, questions: list[dict], reference: FixtureDatabase,
 
 
 def evaluate_variants(agents: dict, questions: list[dict], reference: FixtureDatabase,
-                      policy: dict, repetitions: int, seed: int = 42) -> list[dict]:
+                      policy: dict, repetitions: int, seed: int = 42, checkpoint=None) -> list[dict]:
     """Interleave matched trials; never run all of v1 before all of v2."""
     if repetitions < 1:
         raise ValueError("Repetitions must be positive")
@@ -190,11 +190,18 @@ def evaluate_variants(agents: dict, questions: list[dict], reference: FixtureDat
             if (repetition * len(ordered) + index) % 2:
                 variants.reverse()
             for variant in variants:
+                record_id = f"{variant}:{question['id']}:{repetition}"
+                previous = checkpoint.get(record_id) if checkpoint else None
+                if previous is not None:
+                    records.append(previous)
+                    continue
                 record = evaluate(
                     agents[variant], [question], reference, policy, 1, seed, variant,
                 )[0]
                 record["repetition"] = repetition
                 record["record_id"] = f"{variant}:{question['id']}:{repetition}"
+                if checkpoint:
+                    checkpoint.save(record)
                 records.append(record)
     return records
 
@@ -259,6 +266,7 @@ def main() -> None:
     parser.add_argument("--repetitions", type=int, default=5)
     parser.add_argument("--limit", type=int, default=None, help="Explicit stratified smoke subset")
     parser.add_argument("--output", type=Path)
+    parser.add_argument("--checkpoint", type=Path, help="Resume completed trials from this SQLite journal")
     args = parser.parse_args()
     if args.mode != "mock":
         parser.error("Live mode locked: dated EUR estimate and enforced 5 EUR budget required.")
@@ -293,11 +301,24 @@ def main() -> None:
     agents = {variant: factories[variant](databases[variant]) for variant in variants}
     setup_ns = time.perf_counter_ns() - setup_start
     state = git_state()
+    checkpoint = None
+    if args.checkpoint:
+        from src.eval.checkpoint import Checkpoint
+
+        checkpoint = Checkpoint(args.checkpoint, {
+            "frozen_inputs": lock, "difficulty": difficulty, "commit": state["commit"],
+            "sources": {str(p.relative_to(ROOT)): hashlib.sha256(p.read_bytes()).hexdigest()
+                        for p in sorted((ROOT / "src").rglob("*.py"))},
+            "variants": variants, "questions": questions, "repetitions": args.repetitions,
+            "mode": "mock", "seed": 42,
+        })
     try:
         records = evaluate_variants(
-            agents, questions, databases[variants[0]], bank["reference_policy"], args.repetitions,
+            agents, questions, databases[variants[0]], bank["reference_policy"], args.repetitions, checkpoint=checkpoint,
         )
     finally:
+        if checkpoint:
+            checkpoint.close()
         for database in databases.values():
             database.close()
     manifest = {
@@ -319,6 +340,7 @@ def main() -> None:
         "temperature": 0, "model_seed_supported": False, "harness_seed": 42,
         "repetitions": args.repetitions, "question_ids": [q["id"] for q in questions],
         "actual_attempts": len(records), "concurrency": 1,
+        "checkpoint": str(args.checkpoint) if args.checkpoint else None,
         "order": "seeded question order; repetition-major; alternating variant order per question", "setup_duration_ns": setup_ns,
         "latency": "monotonic ns; complete graph call; setup/scoring excluded; nearest rank",
         "tokens": None, "llm_api_cost_eur": "0", "total_cost_eur": None,
