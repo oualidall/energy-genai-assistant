@@ -1,0 +1,59 @@
+{
+  "schema_version": "1",
+  "prepared_date": "2026-10-01",
+  "mode": "free_only",
+  "status": "blocked_pending_project_quotas_and_free_transport",
+  "bank_sha256": "f67ace63230678169d583243ebe7aa040fea19ee9b1692dda91e94cc3dfb5d76",
+  "repetitions": 1,
+  "variants": [
+    "v1",
+    "v2"
+  ],
+  "questions": [
+    {
+      "id": "H07",
+      "slot": "facile"
+    },
+    {
+      "id": "H04",
+      "slot": "moyen"
+    },
+    {
+      "id": "H08",
+      "slot": "moyen"
+    },
+    {
+      "id": "H05",
+      "slot": "difficile"
+    },
+    {
+      "id": "H09",
+      "slot": "difficile"
+    },
+    {
+      "id": "H01",
+      "slot": "hors_perimetre",
+      "note": "Category slot; unchanged difficulty label is difficile."
+    }
+  ],
+  "scope": "Synthetic SQLite snapshot; external LLM only. No BigQuery or real RTE claim.",
+  "paid_mode": false,
+  "pilot_shadow_cap_eur": "0.50",
+  "full_campaign_shadow_cap_eur": "2.50",
+  "global_shadow_cap_eur": "5.00",
+  "full_campaign_requires_new_user_approval": true,
+  "second_campaign_authorized": false,
+  "quota_source": "Project-specific AI Studio limits; not yet supplied",
+  "models": {
+    "gemini-2.5-flash-lite": {
+      "rpm": null,
+      "tpm": null,
+      "rpd": null
+    },
+    "gemini-2.5-flash": {
+      "rpm": null,
+      "tpm": null,
+      "rpd": null
+    }
+  }
+}
