@@ -225,3 +225,21 @@ def test_pending_reservation_is_visible_to_another_connection(tmp_path):
     assert fn.calls == 1
     first.close()
     second.close()
+
+
+def test_provider_cooldown_cannot_be_bypassed_by_new_call_after_restart(tmp_path):
+    path, clock = tmp_path / "cooldown.db", Clock()
+    g = gate(path, clock)
+
+    def limited(*args):
+        raise RateLimitError(retry_after=65)
+
+    with pytest.raises(ResumeBlockedError):
+        invoke(g, limited, retries=0)
+    g.close()
+    g = gate(path, clock)
+    fn = Transport()
+    invoke(g, fn, "new")
+    assert sum(clock.sleeps) == 65
+    assert fn.calls == 1
+    g.close()
