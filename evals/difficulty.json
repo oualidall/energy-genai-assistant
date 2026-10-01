@@ -1,0 +1,173 @@
+{
+  "schema_version": "1",
+  "assigned_date": "2026-09-29",
+  "bank_sha256": "f67ace63230678169d583243ebe7aa040fea19ee9b1692dda91e94cc3dfb5d76",
+  "basis": "Task requirements only; labels added after initial mock smoke runs, before multi-agent comparison. Not inferred from observed pass/fail or latency.",
+  "levels": {
+    "facile": "Une lecture directe, un calcul élémentaire ou une limite de périmètre évidente suffit.",
+    "moyen": "La réponse combine un filtre et un calcul, interprète une convention ou identifie une ambiguïté contextualisée.",
+    "difficile": "La réponse exige plusieurs opérations liées, une restitution structurée, plusieurs clarifications ou une résistance à une instruction adverse."
+  },
+  "questions": {
+    "H01": {
+      "level": "difficile",
+      "reason": "Distinguer une demande d'écriture d'une question sur les données et refuser sans confirmation fictive."
+    },
+    "H02": {
+      "level": "facile",
+      "reason": "Identifier explicitement un pays extérieur au périmètre français."
+    },
+    "H03": {
+      "level": "moyen",
+      "reason": "Détecter à la fois l'absence de prix et l'absence de prévisions dans les sources."
+    },
+    "H04": {
+      "level": "moyen",
+      "reason": "Combiner filtre nucléaire et recherche du minimum avec sa semaine."
+    },
+    "H05": {
+      "level": "difficile",
+      "reason": "Calculer deux sommes mensuelles puis un ratio en conservant les deux totaux comme preuves."
+    },
+    "H06": {
+      "level": "difficile",
+      "reason": "Restituer cinq lignes ordonnées avec quatre colonnes cohérentes et sans omissions."
+    },
+    "H07": {
+      "level": "facile",
+      "reason": "Retrouver une granularité explicitement décrite dans un passage documentaire."
+    },
+    "H08": {
+      "level": "moyen",
+      "reason": "Expliquer une différence algébrique et interpréter correctement son signe."
+    },
+    "H09": {
+      "level": "difficile",
+      "reason": "Repérer plusieurs informations manquantes dont une référence temporelle relative."
+    },
+    "H10": {
+      "level": "difficile",
+      "reason": "Distinguer critère subjectif et mesure disponible, avec clarification ou hypothèse annoncée."
+    },
+    "conso_total_jour": {
+      "level": "facile",
+      "reason": "Effectuer une recherche sur une date et une seule colonne."
+    },
+    "conso_pic_max": {
+      "level": "facile",
+      "reason": "Appliquer un maximum global à une seule colonne."
+    },
+    "conso_jour_max": {
+      "level": "moyen",
+      "reason": "Associer la date au maximum plutôt que renvoyer uniquement sa valeur."
+    },
+    "conso_moyenne_periode": {
+      "level": "facile",
+      "reason": "Calculer une moyenne globale sans filtre ni regroupement."
+    },
+    "conso_juillet_total": {
+      "level": "moyen",
+      "reason": "Combiner une somme avec les bornes d'un mois."
+    },
+    "mix_top_filiere_semaine": {
+      "level": "moyen",
+      "reason": "Filtrer une semaine puis identifier la filière de production maximale."
+    },
+    "mix_part_nucleaire": {
+      "level": "moyen",
+      "reason": "Filtrer une filière avant de calculer sa part moyenne."
+    },
+    "mix_top3_filieres": {
+      "level": "difficile",
+      "reason": "Agréger par filière puis classer les sommes et restituer trois résultats."
+    },
+    "mix_solaire_max_semaine": {
+      "level": "moyen",
+      "reason": "Filtrer le solaire et retrouver la semaine correspondant au maximum."
+    },
+    "echanges_solde_total": {
+      "level": "facile",
+      "reason": "Additionner une colonne signée sur toute la période."
+    },
+    "echanges_jours_importateur": {
+      "level": "moyen",
+      "reason": "Traduire importatrice nette en condition de signe puis compter les jours."
+    },
+    "echanges_export_max": {
+      "level": "moyen",
+      "reason": "Associer le jour à la valeur maximale des exports."
+    },
+    "D01": {
+      "level": "facile",
+      "reason": "Retrouver la définition explicite d'un code de filière."
+    },
+    "D02": {
+      "level": "moyen",
+      "reason": "Distinguer énergie et puissance et associer chaque unité au bon indicateur."
+    },
+    "D03": {
+      "level": "facile",
+      "reason": "Retrouver le jour de référence d'une semaine ISO."
+    },
+    "D04": {
+      "level": "facile",
+      "reason": "Retrouver un fuseau horaire explicitement nommé."
+    },
+    "D05": {
+      "level": "facile",
+      "reason": "Retrouver la définition d'un code hydraulique."
+    },
+    "D06": {
+      "level": "facile",
+      "reason": "Restituer deux définitions explicites en respectant leur correspondance."
+    },
+    "D07": {
+      "level": "moyen",
+      "reason": "Appliquer un facteur de conversion documentaire à une valeur."
+    },
+    "A01": {
+      "level": "facile",
+      "reason": "Reconnaître l'absence évidente de grandeur et de période."
+    },
+    "A02": {
+      "level": "difficile",
+      "reason": "Clarifier simultanément la période, la mesure et le périmètre éolien."
+    },
+    "A03": {
+      "level": "difficile",
+      "reason": "Identifier les périodes comparées et la mesure avant toute conclusion de tendance."
+    },
+    "A04": {
+      "level": "moyen",
+      "reason": "Détecter l'absence de grandeur et d'année malgré la mention d'un mois."
+    },
+    "A05": {
+      "level": "moyen",
+      "reason": "Détecter une référence annuelle relative sans date de contexte."
+    },
+    "A06": {
+      "level": "facile",
+      "reason": "Reconnaître l'absence d'indicateur et de période pour définir un record."
+    },
+    "O01": {
+      "level": "facile",
+      "reason": "Identifier une demande culinaire clairement extérieure au domaine."
+    },
+    "O02": {
+      "level": "moyen",
+      "reason": "Distinguer une donnée énergétique proche du domaine mais absente du schéma."
+    },
+    "O03": {
+      "level": "moyen",
+      "reason": "Distinguer consommation individuelle et agrégats nationaux disponibles."
+    },
+    "O04": {
+      "level": "difficile",
+      "reason": "Résister à une instruction de contournement et à une demande de secret."
+    },
+    "O05": {
+      "level": "facile",
+      "reason": "Identifier une action de réservation étrangère aux capacités de l'assistant."
+    }
+  }
+}
