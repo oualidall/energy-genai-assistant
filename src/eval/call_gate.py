@@ -16,6 +16,7 @@ from pathlib import Path
 from threading import RLock
 from zoneinfo import ZoneInfo
 
+from src.eval.judge_prompt import judge_protocol
 from src.eval.pilot_audit import usage_counts
 
 
@@ -209,6 +210,11 @@ class CallGate:
         if forecast and any(type(forecast.get(k)) is not int or forecast[k] < 0
                             for k in ("input_tokens", "output_tokens")):
             raise ValueError("Invalid pre-call forecast")
+        if forecast.get("role") == "judge" and (
+            model != "gemini-2.5-flash" or input_tokens > 2000 or max_output_tokens > 512
+            or forecast.get("judge_protocol") != judge_protocol()
+        ):
+            raise BudgetLimitError("Judge must use the exact compact-2000-v1 protocol")
         forecast["prompt_sha256"] = hashlib.sha256(canonical(payload).encode()).hexdigest()
         fingerprint = hashlib.sha256(canonical({
             "forecast": forecast,
