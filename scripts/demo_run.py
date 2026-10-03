@@ -11,7 +11,7 @@ from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 from scripts.demo_guardrail import ROOT, sync_readme
-from src.agent.graph import AgentExecutionAborted, EnergyAgent
+from src.agent.graph import AgentAbortedError, EnergyAgent
 from src.config import settings
 from src.rag.knowledge import KNOWLEDGE, Retriever
 from src.sql.text_to_sql import is_safe_sql, strip_fences
@@ -49,9 +49,9 @@ class GeminiTransport:
             with urlopen(request, timeout=60) as response:
                 return json.load(response)
         except HTTPError as exc:
-            raise AgentExecutionAborted(f"Gemini HTTP {exc.code}; no retry") from None
+            raise AgentAbortedError(f"Gemini HTTP {exc.code}; no retry") from None
         except URLError:
-            raise AgentExecutionAborted("Gemini network failure; usage unknown, no retry") from None
+            raise AgentAbortedError("Gemini network failure; usage unknown, no retry") from None
 
 
 class MeteredLLM:
@@ -64,16 +64,19 @@ class MeteredLLM:
 
     def invoke(self, prompt: str):
         if len(self.calls) >= MAX_CALLS:
-            raise AgentExecutionAborted("Limite de 10 appels atteinte : appel suivant bloqué.")
+            raise AgentAbortedError("Limite de 10 appels atteinte : appel suivant bloqué.")
         if len(prompt.encode("utf-8")) > 24000:
-            raise AgentExecutionAborted("Prompt supérieur à 24000 octets : appel bloqué.")
+            raise AgentAbortedError("Prompt supérieur à 24000 octets : appel bloqué.")
         record = {"call": len(self.calls) + 1, "usageMetadata": None}
         self.calls.append(record)  # Reserve BEFORE touching the transport, including failures.
         try:
             result = self.transport(prompt)
+        except AgentAbortedError as exc:
+            record["error"] = str(exc)
+            raise
         except Exception as exc:
             record["error"] = type(exc).__name__
-            raise AgentExecutionAborted(f"Transport interrompu ({type(exc).__name__}).") from exc
+            raise AgentAbortedError(f"Transport interrompu ({type(exc).__name__}).") from exc
         record["usageMetadata"] = result.get("usageMetadata")
         candidates = result.get("candidates", [])
         text = "".join(
@@ -84,7 +87,7 @@ class MeteredLLM:
         if "expert SQL BigQuery" in prompt:
             self.last_sql = strip_fences(text)
         if not text:
-            raise AgentExecutionAborted("Gemini n'a renvoyé aucun texte ; arrêt.")
+            raise AgentAbortedError("Gemini n'a renvoyé aucun texte ; arrêt.")
         return SimpleNamespace(content=text)
 
 
@@ -156,7 +159,7 @@ def run_demo(transport, *, bq_client, retriever, output: Path, metadata: dict, r
             for event in agent.graph.stream({"question": question}, stream_mode="updates"):
                 for update in event.values():
                     record.update(update)
-        except AgentExecutionAborted as exc:
+        except AgentAbortedError as exc:
             stopped = str(exc)
         record["sql_candidate"] = llm.last_sql
         # Save completed AND partial observations after every question.
