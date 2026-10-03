@@ -12,7 +12,7 @@ from scripts.demo_run import (
     ReadOnlyBigQuery,
     run_demo,
 )
-from src.agent.graph import AgentExecutionAborted
+from src.agent.graph import AgentAbortedError
 
 
 def test_generated_guardrail_is_current(tmp_path):
@@ -36,7 +36,7 @@ def test_eleventh_call_never_reaches_transport():
     llm = MeteredLLM(lambda prompt: sent.append(prompt) or response("sql"))
     for _ in range(MAX_CALLS):
         llm.invoke("route")
-    with pytest.raises(AgentExecutionAborted, match="10 appels"):
+    with pytest.raises(AgentAbortedError, match="10 appels"):
         llm.invoke("blocked")
     assert len(sent) == len(llm.calls) == MAX_CALLS
 
@@ -45,7 +45,7 @@ def test_failed_attempt_reserves_call_and_unknown_usage():
     def fail(_):
         raise OSError("offline")
     llm = MeteredLLM(fail)
-    with pytest.raises(AgentExecutionAborted):
+    with pytest.raises(AgentAbortedError):
         llm.invoke("question")
     assert len(llm.calls) == 1
     assert llm.calls[0]["usageMetadata"] is None
@@ -54,7 +54,7 @@ def test_failed_attempt_reserves_call_and_unknown_usage():
 def test_oversized_prompt_never_reaches_transport():
     sent = []
     llm = MeteredLLM(lambda prompt: sent.append(prompt))
-    with pytest.raises(AgentExecutionAborted, match="24000"):
+    with pytest.raises(AgentAbortedError, match="24000"):
         llm.invoke("a" * 24001)
     assert not sent
     assert not llm.calls
