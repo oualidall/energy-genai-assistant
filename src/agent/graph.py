@@ -54,7 +54,7 @@ Question: {question}
 Réponse:"""
 
 
-class AgentExecutionAborted(RuntimeError):
+class AgentAbortedError(RuntimeError):
     """Cancellation that must not be swallowed by tool fallback handling."""
 
 
@@ -97,7 +97,7 @@ class EnergyAgent:
             sql = generate_sql(state["question"], llm=self.llm)
             rows = run_query(qualify_tables(sql), client=self.bq_client)
             return {"sql": sql, "rows": rows}
-        except AgentExecutionAborted:
+        except AgentAbortedError:
             raise
         except Exception as exc:  # noqa: BLE001 — preserve the error for graph observers
             return {"sql": None, "rows": [], "error": str(exc)}
