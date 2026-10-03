@@ -37,7 +37,7 @@ python -m src.eval.compare
 
 The first command recounts categories, provenance and difficulty from files. The authoritative difficulty mapping is unchanged: 15 facile, 16 moyen, 9 difficile.
 
-The second command defaults to 40 questions x 5 repetitions x 2 variants = 400 offline attempts. A seeded question order and alternating variant order pair attempts; each variant has an isolated SQLite fixture. Raw responses, failures, integer latency samples, tool/model records, critique visits and revisions are exported. Provider tokens remain null and LLM API cost is zero for mock execution. Different mock policies prevent attributing a quality difference to orchestration alone.
+The second command defaults to 40 questions x 5 repetitions x 2 variants = 400 offline attempts. A seeded question order and alternating variant order pair attempts; each variant has an isolated SQLite fixture. Raw responses, failures, integer latency samples, tool/model records, critique visits and revisions are exported. Provider tokens remain null and LLM API expenditure is zero for mock execution. Different mock policies prevent attributing a quality difference to orchestration alone.
 
 **Measurement scope: synthetic SQLite snapshot, not BigQuery under real conditions.** No inference about real RTE data, Gemini reasoning, BigQuery dialect/IAM, network latency, billing or scale is supported. Full comparative results and human-validated judge scores remain later deliverables.
 
