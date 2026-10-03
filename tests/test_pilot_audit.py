@@ -7,7 +7,7 @@ import json
 import pytest
 
 from src.eval.annotation import agreement
-from src.eval.call_gate import CallGate, Quota, ResumeBlockedError, UsageContractError
+from src.eval.call_gate import BudgetLimitError, CallGate, Quota, ResumeBlockedError, UsageContractError
 from src.eval.judge_prompt import judge_protocol, prepare_judge
 from src.eval.pilot_audit import MetadataError, audit, delta, usage_counts, write_report
 
@@ -91,3 +91,17 @@ def test_human_agreement_is_not_transferable_from_old_judge(old):
     assert report["agreement_fraction"] == "1"
     assert report["judge_validated"] is (not old)
     assert report["judge_protocol_matches"] is (not old)
+
+
+@pytest.mark.parametrize("inputs, protocol", [(2001, "current"), (1000, "old")])
+def test_judge_protocol_violation_blocks_transport(tmp_path, inputs, protocol):
+    model = "gemini-2.5-flash"
+    gate = CallGate(tmp_path / "judge.db", {"test": True}, {model: Quota(10, 10000, 100)})
+    calls = []
+    with pytest.raises(BudgetLimitError, match="compact-2000"):
+        gate.call("judge", "v2:H07:0:judge", model, {}, inputs, 512,
+                  lambda *args: calls.append(1),
+                  forecast={"role": "judge", "input_tokens": 2000, "output_tokens": 200,
+                            "judge_protocol": judge_protocol() if protocol == "current" else {}})
+    assert calls == [] and gate.report()["calls"] == []
+    gate.close()
