@@ -90,12 +90,20 @@ SQL execution match is separate from final-answer correctness. Final-answer and 
 
 The offline benchmark can resume completed trials with `python -m src.eval.compare --checkpoint work/campaign.sqlite --output work/campaign-results` after creating `work/`. Keep the same source and configuration when resuming.
 
-## Cost and delivery limits
+## Theoretical theoretical cost in paid mode in paid mode and delivery limits
 
 Total effective-work budget: five days on the minimal path 1 -> 2 -> 4 -> minimal 3 -> 5 -> reduced 6. Stop and report proposed cuts if a lot exceeds its allocation.
 
-**No paid execution before a dated estimate in euros for the entire campaign, including the judge. Total cap: EUR 5.** If 400 attempts plus judging cannot fit conservative bounds, propose fewer repetitions or a documented stratified subset first. Mock LLM API cost is zero because no provider calls occur; host/CI costs are not measured. No live tariff or billed total is asserted.
+**Paid mode is disabled and unauthorized.** The Free-tier pilot has a EUR 0.50 ceiling for theoretical cost in paid mode; stop and report afterward. One full campaign requires explicit subsequent approval and a EUR 2.50 ceiling. No second campaign is authorized. Mock API expenditure is zero because no provider calls occur; host/CI expenditure is not measured. No live tariff or billed total is asserted.
 
 ## License and author
 
 [MIT](LICENSE). Personal work by Oualid Allouch.
+
+## Pilot decision and human validation
+
+[Preregistered pilot acceptance](docs/v2/pilot-acceptance.md) fixes stop conditions and eligibility before any real response. Verified Free-tier API expenditure is zero; submitted public/synthetic data may be used to improve Google's products ([official terms and pricing](https://ai.google.dev/gemini-api/docs/pricing)). Every monetary estimate is a **theoretical cost in paid mode**, not Free-tier expenditure.
+
+The Flash judge and Flash-Lite agents share the Gemini model family: leniency and shared biases are not excluded. Only the human-annotated sample establishes correctness. Agreement must use the actual compact-2000-v1 prompt and its recorded source hash; old 4,000-token agreement cannot transfer. No real human agreement has been measured yet. Synthetic annotation test values are not results.
+
+PR #4 targets v2-multi-agent. New pilot corrections stay on v2-free-tier-controls; CI evidence must identify its exact branch/commit. Nothing is merged into main before the pilot. The frozen September refusal rubric is preserved byte-for-byte for hash integrity; its historical monetary wording is superseded by the current pilot policy.
