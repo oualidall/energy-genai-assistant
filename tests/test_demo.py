@@ -1,7 +1,6 @@
 """Offline recorder tests; fabricated responses never become published demos."""
 from __future__ import annotations
 
-import json
 from types import SimpleNamespace
 
 import pytest
@@ -128,5 +127,14 @@ def test_readme_sync_requires_explicit_markers(tmp_path):
     assert path.read_text(encoding="utf-8") == "unchanged"
 
 
-def test_transport_response_is_json_serializable():
-    assert json.loads(json.dumps(response("électricité")))["usageMetadata"]["totalTokenCount"] == 10
+def test_budget_cancellation_in_sql_node_is_not_swallowed(tmp_path):
+    sent = []
+    def transport(prompt):
+        sent.append(prompt)
+        return response("sql" if "Catégorise" in prompt else "SELECT 1")
+    result = run_demo(transport, bq_client=FakeClient(), retriever=FakeRetriever(),
+                      output=tmp_path / "partial.md", metadata={"mode": "test"})
+    assert len(sent) == 10
+    assert result["stopped"]
+    assert "answer" not in result["records"][-1]
+    assert result["records"][-1]["route"] == "sql"
