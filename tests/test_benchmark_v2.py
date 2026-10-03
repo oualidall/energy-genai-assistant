@@ -21,6 +21,7 @@ from src.eval.benchmark import (
     verify_freeze,
 )
 from src.eval.compare import evaluate, main, nearest_rank, rows_equal, summarize
+from src.eval.judge_prompt import judge_protocol
 
 
 def test_frozen_bank_keeps_owner_and_legacy_questions():
@@ -130,6 +131,7 @@ def fake_records():
                         "criterion": "Unit fixture criterion",
                         "raw_answer": {"answer": "Unit fixture answer"},
                         "observations": {}, "judge_verdict": "correct",
+                        "judge_protocol": judge_protocol(),
                     })
     return records
 
