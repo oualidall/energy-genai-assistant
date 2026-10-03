@@ -55,5 +55,21 @@
       "tpm": null,
       "rpd": null
     }
-  }
+  },
+  "acceptance_policy": "docs/v2/pilot-acceptance.md",
+  "acceptance_policy_date": "2026-10-03",
+  "judge": {
+    "protocol": "compact-2000-v1",
+    "input_limit": 2000,
+    "output_limit": 512,
+    "human_validation_same_protocol_required": true,
+    "old_agreement_transferable": false
+  },
+  "stop_after_pilot": true,
+  "required_definite_pilot_annotations": 12,
+  "minimum_pilot_agreement_matches": 10,
+  "pilot_expected_theoretical_paid_eur_with_provision": "0.031032",
+  "three_repetition_trigger_eur_with_provision_strictly_greater_than": "0.046548",
+  "actual_free_api_expenditure_eur": "0",
+  "free_status_must_be_verified": true
 }

@@ -11,6 +11,8 @@ from collections import defaultdict
 from fractions import Fraction
 from pathlib import Path
 
+from src.eval.judge_prompt import judge_protocol
+
 VERDICTS = {"correct", "incorrect", "incertain"}
 FIELDS = ["annotation_id", "question", "categorie", "reponse", "critere_attendu",
           "preuves", "verdict", "commentaire"]
@@ -115,7 +117,12 @@ def agreement(records: list[dict], mapping: dict, labels: list[dict]) -> dict:
         matches += judge == verdict
         matrix[verdict][judge] += 1
     total = len(records)
+    protocol = judge_protocol()
+    protocol_matches = bool(records) and all(r.get("judge_protocol") == protocol for r in records)
     return {
+        "judge_protocol": protocol,
+        "judge_protocol_matches": protocol_matches,
+        "validation_scope": "Only human-annotated answers establish correctness; same-family judge bias remains possible.",
         "total_responses": total, "sampled": len(mapping["mapping"]),
         "annotated": annotated, "definite": definite, "uncertain": uncertain,
         "valid_pairs": paired, "matches": matches,
@@ -125,7 +132,8 @@ def agreement(records: list[dict], mapping: dict, labels: list[dict]) -> dict:
         "definite_coverage_fraction": str(Fraction(definite, total)) if total else None,
         "confusion_matrix": matrix,
         "judge_validated": bool(total and definite * 5 >= total
-                                and paired == definite and paired > 0),
+                                and paired == definite and paired > 0
+                                and matches * 5 >= paired * 4 and protocol_matches),
     }
 
 

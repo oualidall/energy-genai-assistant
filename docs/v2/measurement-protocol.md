@@ -10,10 +10,10 @@ Concrete model IDs, pricing, snapshots and resource limits must be resolved and 
 - Temperature 0 for agents and judge; harness seed 42, fixed execution order and alternating v1/v2 within matched trials. Concurrency 1.
 - Pass seed 42 to model APIs when supported; record actual support. Do not claim temperature zero or a seed guarantees identical outputs.
 - Same resolved model, corpus, snapshot and evaluator for both variants. Preserve v1 prompts/routing. Document compatibility or shared safety changes separately.
-- Freeze finite timeouts, provider retries, graph steps, tool caps and token caps in configuration before execution. All agent retries consume the request budget and count in latency/cost.
+- Freeze finite timeouts, provider retries, graph steps, tool caps and token caps in configuration before execution. All agent retries consume the request budget and count in latency/theoretical cost in paid mode.
 - Never supply golden answers to the graph, tools or mocks. Mock tests verify mechanics; they do not establish Gemini answer quality.
 - Use the same tool transport for the primary v1/v2 comparison. Record optional local/MCP transport experiments separately.
-- Initialize clients and document embeddings explicitly before measured requests. Record setup time and cost separately and include them in full-run cost. Disable answer caches and record provider caching.
+- Initialize clients and document embeddings explicitly before measured requests. Record setup time and theoretical cost in paid mode separately and include them in full-run theoretical cost in paid mode. Disable answer caches and record provider caching.
 
 ## Latency and quality
 
@@ -23,13 +23,13 @@ Compute p50 and p95 by nearest rank: sort n observations and select the one-base
 
 Quality denominators include every planned executed attempt, including failures. Publish exact pass/total fractions, per-category rates and per-question repetition outcomes. Distinguish SQL execution match from final answer correctness. Define column mappings, numeric tolerances and ordering requirements per criterion; do not inherit implicit two-decimal rounding. Validate reference queries on the frozen snapshot before running comparisons.
 
-Record raw timing/usage values and exact decimal costs. Tables are generated from saved records. No manually rounded or invented results. Publish negative v2-v1 changes explicitly without implying general significance from this small bank.
+Record raw timing/usage values and exact decimal theoretical costs in paid mode. Tables are generated from saved records. No manually rounded or invented results. Publish negative v2-v1 changes explicitly without implying general significance from this small bank.
 
-## Tokens and cost
+## Tokens and theoretical cost in paid mode
 
 Record all provider usage categories available per call and their provenance. Separate generation, embeddings, judge and reference-query usage. Missing usage remains unknown; do not price it as zero. Mock estimates cannot be reported as measured live usage.
 
-The pricing manifest records effective/check date, official source, model, units, rates as decimal strings and currency. Separate per-request agent cost, setup, scoring and full benchmark cost. Include BigQuery where measurable and identify excluded infrastructure costs. Actual billing is separate and requires billing evidence; estimated cost is labeled estimated. Free quota does not prove a zero invoice.
+The pricing manifest records effective/check date, official source, model, units, rates as decimal strings and currency. Separate per-request agent theoretical cost in paid mode, setup, scoring and full benchmark theoretical cost in paid mode. Include BigQuery where measurable and identify excluded infrastructure theoretical costs in paid mode. Actual billing is separate and requires billing evidence; estimated theoretical cost in paid mode is labeled estimated. Free quota does not prove a zero invoice.
 
 Report critic coverage (requests with critic calls / all attempts), revision rate (requests requesting revision / all attempts), total critic calls and tool calls separately. An always-on critic otherwise makes an escalation metric uninformative.
 
@@ -67,6 +67,12 @@ Future output directory: evals/results/<run-id>/ with manifest, v1/v2 raw result
 
 ## Publication rules
 
-Separate mock and live results. State date, model, seed support, temperature, repetitions, actual n behind each percentile, snapshot, environment and pricing date beside the README table. If v2 does not improve v1, say so with the measured values and added latency/cost.
+Separate mock and live results. State date, model, seed support, temperature, repetitions, actual n behind each percentile, snapshot, environment and pricing date beside the README table. If v2 does not improve v1, say so with the measured values and added latency/theoretical cost in paid mode.
 
 Facts for CV contains only reproduced measurements with commands and context, no deployment/customer claims, no superlatives and no connection to a graduation project. There are no new performance facts to publish at this checkpoint.
+
+## October 3 pilot override
+
+The [pilot acceptance policy](pilot-acceptance.md) controls the forthcoming run. Use the compact-2000-v1 judge with a 2,000-input ceiling and record its implementation hash. Human validation must use that actual prompt, never the old 4,000-token version. No real human agreement exists yet. Flash/Flash-Lite share a model family; leniency bias remains possible. Only the human-annotated sample establishes correctness; automatic scores outside it remain estimates.
+
+Verified Free-tier API expenditure is zero. Public/synthetic inputs may be used to improve Google's products. All monetary comparisons denote theoretical cost in paid mode. Stop after the pilot and await explicit owner approval; no second campaign is authorized.

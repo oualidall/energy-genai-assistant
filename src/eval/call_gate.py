@@ -16,6 +16,9 @@ from pathlib import Path
 from threading import RLock
 from zoneinfo import ZoneInfo
 
+from src.eval.judge_prompt import judge_protocol
+from src.eval.pilot_audit import usage_counts
+
 
 class BudgetLimitError(RuntimeError):
     pass
@@ -101,12 +104,13 @@ class CallGate:
                 reserve INTEGER, actual INTEGER, input_used INTEGER, output_used INTEGER,
                 output TEXT, retry_at REAL, error TEXT
             );
+            CREATE TABLE IF NOT EXISTS forecasts (call_id TEXT PRIMARY KEY, value TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS waits (
                 call_id TEXT, started REAL, duration REAL, reason TEXT
             );
         """)
         binding = canonical({
-            "identity": identity, "quotas": {k: asdict(v) for k, v in quotas.items()},
+            "ledger_schema": "2", "identity": identity, "quotas": {k: asdict(v) for k, v in quotas.items()},
             "cap_nanoeur": cap_nanoeur, "prices": PRICES, "price_date": PRICE_DATE,
         })
         with self.lock:
@@ -192,7 +196,7 @@ class CallGate:
     def call(self, key: str, request_id: str, model: str, payload: dict,
              input_tokens: int, max_output_tokens: int, transport,
              max_tokens: int = 16384, max_outputs: int = 3072,
-             max_calls: int = 10, retries: int = 3):
+             max_calls: int = 10, retries: int = 3, forecast: dict | None = None):
         """Only explicit 429 errors retry; uncertain outcomes never repeat silently."""
         if model not in self.quotas:
             raise ValueError("Verified model quota missing")
@@ -202,7 +206,18 @@ class CallGate:
                 or any(type(n) is not int or n < 1
                        for n in (max_tokens, max_outputs, max_calls))):
             raise ValueError("Invalid call limits")
+        forecast = dict(forecast or {})
+        if forecast and any(type(forecast.get(k)) is not int or forecast[k] < 0
+                            for k in ("input_tokens", "output_tokens")):
+            raise ValueError("Invalid pre-call forecast")
+        if forecast.get("role") == "judge" and (
+            model != "gemini-2.5-flash" or input_tokens > 2000 or max_output_tokens > 512
+            or forecast.get("judge_protocol") != judge_protocol()
+        ):
+            raise BudgetLimitError("Judge must use the exact compact-2000-v1 protocol")
+        forecast["prompt_sha256"] = hashlib.sha256(canonical(payload).encode()).hexdigest()
         fingerprint = hashlib.sha256(canonical({
+            "forecast": forecast,
             "payload": payload, "model": model, "inputs": input_tokens,
             "outputs": max_output_tokens, "max_tokens": max_tokens,
             "max_outputs": max_outputs, "max_calls": max_calls,
@@ -224,12 +239,24 @@ class CallGate:
                     self._wait(call_id, data["retry_at"], "provider_429")
                     continue
                 raise ResumeBlockedError("Uncertain/pending call requires reconciliation")
+            with self.lock:
+                self.db.execute("INSERT INTO forecasts VALUES (?, ?)", (call_id, canonical(forecast)))
             try:
                 response = transport(model, payload, max_output_tokens)
-                usage = response["usage"]
-                incoming = usage["input_tokens"]
-                outgoing = usage["output_tokens"]
+                with self.lock:
+                    self.db.execute("UPDATE calls SET output=? WHERE id=?",
+                                    (canonical(response), call_id))
+                if "usageMetadata" in response:
+                    incoming, outgoing = usage_counts(response["usageMetadata"])
+                else:
+                    # Legacy fake transports only; pilot audit rejects missing usageMetadata.
+                    usage = response["usage"]
+                    incoming = usage["input_tokens"]
+                    outgoing = usage["output_tokens"]
                 actual = cost(model, incoming, outgoing)
+                with self.lock:
+                    self.db.execute("UPDATE calls SET actual=?, input_used=?, output_used=? WHERE id=?",
+                                    (actual, incoming, outgoing, call_id))
                 if incoming > input_tokens or outgoing > max_output_tokens:
                     raise UsageContractError("Provider usage exceeds reservation; stop campaign")
                 output = canonical(response)
@@ -263,6 +290,8 @@ class CallGate:
             rows = [dict(r) for r in self.db.execute("SELECT * FROM calls ORDER BY started, id")]
             waits = [dict(r) for r in self.db.execute("SELECT * FROM waits")]
         for row in rows:
+            saved = self.db.execute("SELECT value FROM forecasts WHERE call_id=?", (row["id"],)).fetchone()
+            row["forecast"] = json.loads(saved[0]) if saved else {}
             if row["actual"] is not None:
                 row["hypothetical_paid_usd"] = str(Decimal(row["actual"]) / Decimal(1200000000))
             else:

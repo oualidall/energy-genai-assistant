@@ -59,11 +59,11 @@ Target human effort is 45 minutes (5-minute briefing and approximately 30 second
 
 Implemented here: frozen bank, synthetic references, actual v1/v2 offline graph execution, bounded v2 retries/accounting, output records, percentiles, reference SQL comparison and human annotation workflow.
 
-Still required in subsequent lots: MCP, provider usage/cost capture, live/judge implementation, actual human annotations, paired full-run result commits and final README results. Model prices and real scores have not been invented. No paid API execution occurs in CI.
+Still required in subsequent lots: MCP, provider usage/theoretical cost in paid mode capture, live/judge implementation, actual human annotations, paired full-run result commits and final README results. Model prices and real scores have not been invented. No paid API execution occurs in CI.
 
 ## September 29 clarification: scope, explicit lock and difficulty
 
-All current measurements use a **synthetic snapshot in SQLite, not BigQuery under real conditions**. They cannot establish BigQuery dialect correctness, IAM enforcement, network/service latency, query cost, scalability, real RTE data quality or Gemini answer quality. This scope is repeated immediately before each generated result table and saved in each summary group.
+All current measurements use a **synthetic snapshot in SQLite, not BigQuery under real conditions**. They cannot establish BigQuery dialect correctness, IAM enforcement, network/service latency, query theoretical cost in paid mode, scalability, real RTE data quality or Gemini answer quality. This scope is repeated immediately before each generated result table and saved in each summary group.
 
 The explicit bank.lock publishes the same SHA-256 as the original freeze.json, with freeze and publication dates. Startup rejects mismatches, missing locks and disagreement between locks before agent construction. bank.json has not been modified.
 

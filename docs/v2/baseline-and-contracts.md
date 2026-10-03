@@ -62,9 +62,9 @@ evidence_id, kind (document/sql_result), source_id, source_version, content_hash
 
 ### RequestMetrics
 
-Integer monotonic duration_ns, LLM/tool call records, critic_calls, revision_requests, trace_id. Per-call records include role/tool, outcome, duration, retry index, model, provider usage categories and usage provenance. Estimated cost is a decimal string plus currency and pricing-manifest reference.
+Integer monotonic duration_ns, LLM/tool call records, critic_calls, revision_requests, trace_id. Per-call records include role/tool, outcome, duration, retry index, model, provider usage categories and usage provenance. Estimated theoretical cost in paid mode is a decimal string plus currency and pricing-manifest reference.
 
-Count attempted tool calls including failures, without double-counting internal calls. Separate request costs from setup, reference evaluation and judging. Missing provider usage produces incomplete cost, not zero. Mock token counts are not provider-measured usage.
+Count attempted tool calls including failures, without double-counting internal calls. Separate request theoretical costs in paid mode from setup, reference evaluation and judging. Missing provider usage produces incomplete theoretical cost in paid mode, not zero. Mock token counts are not provider-measured usage.
 
 ### RunManifest
 
@@ -97,7 +97,7 @@ Planning estimates, excluding access delays and human annotation wait time:
 | 1 | Reference, audit, contracts, fresh checks | 0.5-1 | Invalid baseline |
 | 2 | Shared bank, evaluator, mock fixtures | 1.5-2.5 | Biased evaluation or leakage |
 | 3 minimal | Three stdio MCP tools and demo | 0.5-1 | Compatibility and executor safety |
-| 4 | Shared-state graph and bounded critique | 2-3 | More cost without improvement |
+| 4 | Shared-state graph and bounded critique | 2-3 | More theoretical cost in paid mode without improvement |
 | 5 | Matched measurements and human validation | 1.5-2.5 | Confounding and incomplete labels |
 | 6 | README, CI finish, changelog, CV facts | 1-1.5 | Claims beyond evidence |
 

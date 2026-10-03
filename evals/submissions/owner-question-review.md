@@ -39,4 +39,4 @@ With five repetitions, that allocation gives 400 responses total. Sampling 20% w
 
 H01 and H07 are resolved with the owner. The synthetic snapshot covers July/August completely; validate SQL preconditions before any measured run. A synthetic mock snapshot may be used with clear provenance but cannot be described as actual RTE observations. Live evaluation requires an independently verified snapshot and the prior dated euro estimate.
 
-Freeze the bank and fixtures before executing any benchmark answers. No evaluation has been executed and no new performance/cost claims are available.
+Freeze the bank and fixtures before executing any benchmark answers. No evaluation has been executed and no new performance/theoretical cost in paid mode claims are available.
