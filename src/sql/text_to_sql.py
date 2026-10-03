@@ -52,19 +52,27 @@ def strip_fences(text: str) -> str:
     return text.strip()
 
 
-def is_safe_sql(sql: str) -> bool:
-    """Return True only for a single read-only SELECT/WITH statement."""
+def sql_safety_rule(sql: str) -> tuple[bool, str]:
+    """Return the actual lexical decision and first deciding rule."""
     cleaned = sql.strip().rstrip(";").strip()
     if not cleaned:
-        return False
+        return False, "empty SQL"
     # reject multiple statements
     if ";" in cleaned:
-        return False
+        return False, "multiple statements (internal semicolon)"
     upper = cleaned.upper()
     if not (upper.startswith("SELECT") or upper.startswith("WITH")):
-        return False
+        return False, "statement must start with SELECT or WITH"
     words = set(re.findall(r"[A-Z_]+", upper))
-    return not (words & _FORBIDDEN)
+    forbidden = sorted(words & _FORBIDDEN)
+    if forbidden:
+        return False, "forbidden keyword(s): " + ", ".join(forbidden)
+    return True, "SELECT/WITH prefix, no internal semicolon or forbidden keyword"
+
+
+def is_safe_sql(sql: str) -> bool:
+    """Return the existing lexical guard decision."""
+    return sql_safety_rule(sql)[0]
 
 
 def qualify_tables(sql: str, dataset: str | None = None) -> str:
