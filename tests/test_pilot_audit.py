@@ -7,7 +7,13 @@ import json
 import pytest
 
 from src.eval.annotation import agreement
-from src.eval.call_gate import BudgetLimitError, CallGate, Quota, ResumeBlockedError, UsageContractError
+from src.eval.call_gate import (
+    BudgetLimitError,
+    CallGate,
+    Quota,
+    ResumeBlockedError,
+    UsageContractError,
+)
 from src.eval.judge_prompt import judge_protocol, prepare_judge
 from src.eval.pilot_audit import MetadataError, audit, delta, usage_counts, write_report
 
