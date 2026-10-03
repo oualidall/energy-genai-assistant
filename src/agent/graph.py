@@ -54,6 +54,10 @@ Question: {question}
 Réponse:"""
 
 
+class AgentExecutionAborted(RuntimeError):
+    """Cancellation that must not be swallowed by tool fallback handling."""
+
+
 class AgentState(TypedDict, total=False):
     question: str
     route: Route
@@ -61,6 +65,7 @@ class AgentState(TypedDict, total=False):
     rows: list[dict[str, Any]]
     context: list[str]
     answer: str
+    error: str
 
 
 def _content(msg: Any) -> str:
@@ -92,8 +97,10 @@ class EnergyAgent:
             sql = generate_sql(state["question"], llm=self.llm)
             rows = run_query(qualify_tables(sql), client=self.bq_client)
             return {"sql": sql, "rows": rows}
-        except Exception:  # noqa: BLE001 — surface as "no data" rather than crash the API
-            return {"sql": None, "rows": []}
+        except AgentExecutionAborted:
+            raise
+        except Exception as exc:  # noqa: BLE001 — preserve the error for graph observers
+            return {"sql": None, "rows": [], "error": str(exc)}
 
     def _rag_node(self, state: AgentState) -> AgentState:
         docs = self._get_retriever().retrieve(state["question"], k=3)
